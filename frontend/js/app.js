@@ -26,7 +26,19 @@ const app = createApp({
     // Notificacao Toast e Modal
     const toastMessage = ref('');
     const showAppointmentsModal = ref(false);
-    const myAppointments = ref([]);
+    const allAppointments = ref([]);
+
+    // Agendamentos filtrados exclusivamente para o cliente ativo
+    const myAppointments = computed(() => {
+      if (!client.value.phone && !client.value.name) return [];
+      const currentPhoneDigits = (client.value.phone || '').replace(/\D/g, '');
+      return allAppointments.value.filter(apt => {
+        if (client.value.id && apt.clientId === client.value.id) return true;
+        if (currentPhoneDigits && (apt.clientPhone || '').replace(/\D/g, '') === currentPhoneDigits) return true;
+        if (client.value.name && apt.clientName && apt.clientName.toLowerCase() === client.value.name.toLowerCase()) return true;
+        return false;
+      });
+    });
 
     // Base de Clientes Cadastrados (Mock local que simula a base de dados)
     const mockKnownClients = [
@@ -444,6 +456,8 @@ const app = createApp({
       nameError.value = '';
       phoneError.value = '';
       emailError.value = '';
+      showAppointmentsModal.value = false;
+      showToast('Sessao encerrada. Digite seu nome para iniciar com nova conta.');
     };
 
     // Controle do Botao Principal Fixo Inferior
@@ -498,10 +512,8 @@ const app = createApp({
         createdAt: new Date().toISOString()
       };
 
-      const storedAppointments = JSON.parse(localStorage.getItem('caios_barber_appointments') || '[]');
-      storedAppointments.unshift(newAppointment);
-      localStorage.setItem('caios_barber_appointments', JSON.stringify(storedAppointments));
-      myAppointments.value = storedAppointments;
+      allAppointments.value.unshift(newAppointment);
+      localStorage.setItem('caios_barber_appointments', JSON.stringify(allAppointments.value));
 
       showToast(`Agendamento confirmado! Enviamos comprovante para ${client.value.phone}.`);
       
@@ -515,13 +527,13 @@ const app = createApp({
     };
 
     const cancelAppointment = (appointmentId) => {
-      const list = myAppointments.value.map(a => {
+      const list = allAppointments.value.map(a => {
         if (a.id === appointmentId) {
           return { ...a, status: 'CANCELADO' };
         }
         return a;
       });
-      myAppointments.value = list;
+      allAppointments.value = list;
       localStorage.setItem('caios_barber_appointments', JSON.stringify(list));
       showToast('Agendamento cancelado com sucesso.');
     };
@@ -538,15 +550,20 @@ const app = createApp({
       // Carrega agendamentos salvos
       const stored = localStorage.getItem('caios_barber_appointments');
       if (stored) {
-        myAppointments.value = JSON.parse(stored);
+        try {
+          allAppointments.value = JSON.parse(stored);
+        } catch (e) {
+          allAppointments.value = [];
+        }
       }
 
       // Verifica se cliente ja esta salvo no navegador (2a iteracao em diante)
       const savedClient = localStorage.getItem('caios_barber_client');
       if (savedClient) {
         try {
-          client.value = JSON.parse(savedClient);
-          if (client.value && client.value.name) {
+          const parsed = JSON.parse(savedClient);
+          if (parsed && (parsed.name || parsed.phone)) {
+            client.value = parsed;
             isIdentified.value = true;
             step.value = 'flow';
             currentStage.value = 1;

@@ -36,7 +36,7 @@
     <!-- Conteiner Principal do Chat / Wizard -->
     <main class="chat-container" ref="chatContainer">
       <!-- Indicador do Cliente Conectado ou Trocar de Conta -->
-      <div v-if="client.phone" class="client-bar">
+      <div v-if="isIdentified || client.name || client.phone" class="client-bar">
         <span>Cliente: <strong>{{ client.name || client.phone }}</strong></span>
         <button class="btn-text-link" @click="resetClient">Trocar / Sair</button>
       </div>
@@ -371,6 +371,11 @@
               </div>
             </div>
           </div>
+        </div>
+        <div class="modal-footer" v-if="isIdentified || client.name || client.phone">
+          <button class="btn-disconnect-account" @click="resetClient">
+            Sair desta Conta / Trocar Cliente
+          </button>
         </div>
       </div>
     </div>
