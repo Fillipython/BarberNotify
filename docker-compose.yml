@@ -36,6 +36,18 @@ services:
     networks:
       - caios_barber_network
 
+  # Aplicacao Web Frontend - Vue 3
+  frontend:
+    image: nginx:alpine
+    container_name: caios_barber_frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - caios_barber_network
+
 volumes:
   pgdata:
     driver: local

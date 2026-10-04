@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Caios Barber - Agendamento Inteligente</title>
+  <meta name="description" content="Agendamento online e atendimento exclusivo na Caios Barber. Escolha seu barbeiro, servicos e horario com reconhecimento automatico de cadastro.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+  <div id="app" v-cloak>
+    <!-- Topo da Aplicacao -->
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-badge">BARBERSHOP</span>
+        <h1 class="brand-title">Caios Barber</h1>
+      </div>
+      <button 
+        id="btn-meus-agendamentos"
+        class="btn-top-appointments" 
+        @click="showAppointmentsModal = true"
+      >
+        MEUS AGENDAMENTOS
+        <span v-if="myAppointments.length > 0" class="badge-count">{{ myAppointments.length }}</span>
+      </button>
+    </header>
+
+    <!-- Conteiner Principal do Chat / Wizard -->
+    <main class="chat-container" ref="chatContainer">
+      <!-- Indicador do Cliente Conectado ou Trocar de Conta -->
+      <div v-if="client.phone" class="client-bar">
+        <span>Cliente: <strong>{{ client.name || client.phone }}</strong></span>
+        <button class="btn-text-link" @click="resetClient">Trocar / Sair</button>
+      </div>
+
+      <!-- Passo 0: Solicitacao de Telefone (Reconhecimento Inicial) -->
+      <section v-if="step === 'ask_phone'" class="chat-step fade-in">
+        <div class="chat-bubble">
+          Ola! Seja bem-vindo a Caios Barber.
+        </div>
+        <div class="chat-bubble">
+          Para iniciar ou localizar seu cadastro, digite seu telefone celular com DDD:
+        </div>
+        <div class="action-card">
+          <label for="input-phone" class="field-label">Telefone Celular</label>
+          <div class="input-group">
+            <input 
+              id="input-phone"
+              type="tel" 
+              v-model="inputPhone" 
+              placeholder="(11) 99999-8888" 
+              class="form-input"
+              @keyup.enter="handlePhoneSubmit"
+            >
+            <button id="btn-submit-phone" class="btn-primary-action" @click="handlePhoneSubmit">
+              Continuar
+            </button>
+          </div>
+          <span v-if="phoneError" class="input-error-msg">{{ phoneError }}</span>
+        </div>
+      </section>
+
+      <!-- Passo 0.5: Cadastro Novo (Nome e Email) caso nao seja reconhecido -->
+      <section v-if="step === 'ask_details'" class="chat-step fade-in">
+        <div class="chat-bubble">
+          Nao encontramos nenhum cadastro para o telefone <strong>{{ inputPhone }}</strong>.
+        </div>
+        <div class="chat-bubble">
+          Vamos fazer seu cadastro rapido. Preencha seu nome e e-mail:
+        </div>
+        <div class="action-card">
+          <div class="field-block">
+            <label for="input-name" class="field-label">Seu Nome Completo</label>
+            <input 
+              id="input-name"
+              type="text" 
+              v-model="inputName" 
+              placeholder="Ex: Carlos Oliveira" 
+              class="form-input"
+            >
+          </div>
+          <div class="field-block">
+            <label for="input-email" class="field-label">Seu E-mail</label>
+            <input 
+              id="input-email"
+              type="email" 
+              v-model="inputEmail" 
+              placeholder="Ex: carlos@gmail.com" 
+              class="form-input"
+            >
+          </div>
+          <span v-if="detailsError" class="input-error-msg">{{ detailsError }}</span>
+          <button id="btn-save-details" class="btn-primary-action full-width" @click="handleDetailsSubmit">
+            Salvar e Avancar
+          </button>
+        </div>
+      </section>
+
+      <!-- Boas-vindas para Cliente Reconhecido -->
+      <section v-if="isIdentified" class="chat-thread">
+        <div class="chat-bubble user-welcome">
+          Como vai, {{ client.name }}! Que bom que voltou!
+        </div>
+
+        <!-- Pergunta de Notificacoes (Caso ainda nao tenha respondido) -->
+        <div v-if="step === 'ask_notifications'" class="notification-request-block fade-in">
+          <div class="chat-bubble">
+            Para que possamos lembra-lo de seu agendamento, ative suas notificacoes clicando abaixo:
+          </div>
+          <div class="notification-actions">
+            <button 
+              id="btn-enable-notifications" 
+              class="btn-pill-action btn-notify-yes" 
+              @click="setNotifications(true)"
+            >
+              Ativar Notificacoes
+            </button>
+            <button 
+              id="btn-skip-notifications" 
+              class="btn-pill-action btn-notify-skip" 
+              @click="setNotifications(false)"
+            >
+              Pular
+            </button>
+          </div>
+        </div>
+
+        <!-- Etapa 1: Escolha do Profissional / Barbeiro -->
+        <div v-if="currentStage >= 1" class="stage-section fade-in">
+          <div class="chat-bubble">
+            Com qual de nossos profissionais voce deseja cortar?
+          </div>
+
+          <div class="barbers-grid">
+            <div 
+              v-for="barber in barbers" 
+              :key="barber.id"
+              :class="['barber-card', { selected: selectedBarber && selectedBarber.id === barber.id }]"
+              @click="selectBarber(barber)"
+            >
+              <div class="barber-avatar-container">
+                <img :src="barber.avatar" :alt="barber.name" class="barber-avatar">
+                <span v-if="barber.isAdmin" class="admin-badge">ADMIN</span>
+              </div>
+              <div class="barber-info">
+                <h4 class="barber-name">{{ barber.name }}</h4>
+                <p class="barber-role">{{ barber.role }}</p>
+                <p class="barber-bio">{{ barber.bio }}</p>
+              </div>
+              <div class="barber-check">
+                <span class="check-icon" v-if="selectedBarber && selectedBarber.id === barber.id">SELECIONADO</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Etapa 2: Selecao de Servicos (Multipla Selecao) -->
+        <div v-if="currentStage >= 2" class="stage-section fade-in">
+          <div class="chat-bubble">
+            Por qual servico voce esta procurando?
+          </div>
+
+          <div class="services-header">
+            <h3 class="section-subtitle">SELECIONE OS SERVICOS:</h3>
+            <span class="multi-select-note">Voce pode marcar mais de uma opcao</span>
+          </div>
+
+          <!-- Carrossel Horizontal de Cards de Servicos -->
+          <div class="services-carousel-wrapper">
+            <div class="services-carousel" ref="servicesCarousel">
+              <div 
+                v-for="service in services" 
+                :key="service.id"
+                :class="['service-card', { selected: isServiceSelected(service.id) }]"
+                @click="toggleService(service)"
+              >
+                <div class="service-image-container">
+                  <img :src="service.image" :alt="service.name" class="service-image" loading="lazy">
+                  <div class="service-selection-indicator">
+                    <span v-if="isServiceSelected(service.id)">OK</span>
+                  </div>
+                </div>
+                <div class="service-details">
+                  <h4 class="service-title">{{ service.name }}</h4>
+                  <div class="service-meta">
+                    <span class="service-price">R$ {{ (service.priceCents / 100).toFixed(2).replace('.', ',') }}</span>
+                    <span class="service-duration">{{ service.durationLabel }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="carousel-hint">
+            <span class="hint-arrow">&rarr;</span>
+            <span>ARRASTE PARA O LADO PARA VER MAIS</span>
+          </div>
+
+          <!-- Resumo de Servicos Selecionados -->
+          <div v-if="selectedServices.length > 0" class="selection-summary-card">
+            <div class="summary-line">
+              <span>Servicos selecionados: <strong>{{ selectedServices.length }}</strong></span>
+              <span>Tempo estimado: <strong>{{ totalDurationLabel }}</strong></span>
+            </div>
+            <div class="summary-line total-price">
+              <span>Valor Total:</span>
+              <strong class="highlight-price">R$ {{ (totalPriceCents / 100).toFixed(2).replace('.', ',') }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Etapa 3: Escolha do Dia e Horario -->
+        <div v-if="currentStage >= 3" class="stage-section fade-in">
+          <div class="chat-bubble">
+            Certo, e qual o melhor dia e horario para voce ser atendido?
+          </div>
+
+          <div class="schedule-section-header">
+            <h3 class="section-subtitle">SELECIONE O DIA E HORARIO:</h3>
+          </div>
+
+          <!-- Carrossel de Cards de Datas -->
+          <div class="date-carousel-wrapper">
+            <div class="date-carousel" ref="dateCarousel">
+              <div 
+                v-for="day in availableDays" 
+                :key="day.isoDate"
+                :class="['date-card', { selected: selectedDay === day.isoDate, disabled: !day.isWorkday }]"
+                @click="day.isWorkday && selectDay(day.isoDate)"
+              >
+                <div class="date-card-top">{{ day.weekday }}</div>
+                <div class="date-card-middle">
+                  <span v-if="day.isToday" class="date-today-label">HOJE</span>
+                  <span v-else :class="['date-number', { strikethrough: !day.isWorkday }]">{{ day.dayNumberFormatted }}</span>
+                </div>
+                <div class="date-card-bottom">{{ day.monthUpper }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="carousel-hint">
+            <span class="hint-arrow">&rarr;</span>
+            <span>ARRASTE PARA O LADO PARA VER MAIS</span>
+          </div>
+
+          <!-- Grade de Horarios Disponiveis (3 colunas identico a referencia) -->
+          <div class="time-slots-container">
+            <div class="time-slots-grid">
+              <button 
+                v-for="slot in availableTimeSlots" 
+                :key="slot.time"
+                :disabled="!slot.available"
+                :class="['time-slot-btn', { selected: selectedTime === slot.time, disabled: !slot.available }]"
+                @click="selectTime(slot.time)"
+              >
+                {{ slot.time }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Barra Inferior de Previa da Data por Extenso -->
+          <div class="selected-datetime-preview">
+            <span>{{ selectedDateFormattedFull }}</span>
+          </div>
+        </div>
+
+        <!-- Etapa 4: Confirmacao Final -->
+        <div v-if="currentStage >= 4" class="stage-section fade-in">
+          <div class="chat-bubble">
+            Tudo pronto! Confira os detalhes do seu agendamento:
+          </div>
+
+          <div class="review-card">
+            <div class="review-item">
+              <span class="review-label">Cliente</span>
+              <strong class="review-value">{{ client.name }} ({{ client.phone }})</strong>
+            </div>
+            <div class="review-item">
+              <span class="review-label">Profissional</span>
+              <strong class="review-value">{{ selectedBarber.name }}</strong>
+            </div>
+            <div class="review-item">
+              <span class="review-label">Data e Horario</span>
+              <strong class="review-value">{{ formatDisplayDate(selectedDay) }} as {{ selectedTime }}</strong>
+            </div>
+            <div class="review-item">
+              <span class="review-label">Servicos</span>
+              <ul class="review-services-list">
+                <li v-for="srv in selectedServices" :key="srv.id">
+                  <span>{{ srv.name }} ({{ srv.durationLabel }})</span>
+                  <span>R$ {{ (srv.priceCents / 100).toFixed(2).replace('.', ',') }}</span>
+                </li>
+              </ul>
+            </div>
+            <div class="review-item total">
+              <span class="review-label">Total a Pagar no Local</span>
+              <strong class="review-total-price">R$ {{ (totalPriceCents / 100).toFixed(2).replace('.', ',') }}</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Espacador para o botao fixo inferior nao cobrir conteudo -->
+      <div class="bottom-spacer"></div>
+    </main>
+
+    <!-- Barra Inferior Fixa com Botao Principal -->
+    <footer v-if="isIdentified" class="app-footer">
+      <button 
+        id="btn-main-action"
+        class="btn-footer-primary" 
+        :disabled="isNextDisabled"
+        @click="handleMainAction"
+      >
+        {{ mainActionLabel }}
+      </button>
+    </footer>
+
+    <!-- Modal: Meus Agendamentos -->
+    <div v-if="showAppointmentsModal" class="modal-overlay" @click.self="showAppointmentsModal = false">
+      <div class="modal-card fade-in">
+        <div class="modal-header">
+          <h3>Meus Agendamentos</h3>
+          <button class="modal-close-btn" @click="showAppointmentsModal = false">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div v-if="myAppointments.length === 0" class="empty-state">
+            <p>Voce ainda nao possui agendamentos cadastrados.</p>
+          </div>
+          <div v-else class="appointments-list">
+            <div v-for="item in myAppointments" :key="item.id" class="appointment-history-card">
+              <div class="history-top">
+                <span class="history-code">#{{ item.id.substring(0, 8) }}</span>
+                <span :class="['status-badge', item.status.toLowerCase()]">{{ item.status }}</span>
+              </div>
+              <div class="history-body">
+                <p><strong>Profissional:</strong> {{ item.barberName }}</p>
+                <p><strong>Data:</strong> {{ item.date }} as {{ item.time }}</p>
+                <p><strong>Servicos:</strong> {{ item.servicesNames.join(', ') }}</p>
+                <p><strong>Total:</strong> R$ {{ (item.totalPriceCents / 100).toFixed(2).replace('.', ',') }} ({{ item.totalDurationLabel }})</p>
+              </div>
+              <div class="history-actions" v-if="item.status === 'CONFIRMADO'">
+                <button class="btn-cancel-appt" @click="cancelAppointment(item.id)">
+                  Cancelar Agendamento
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast / Notificacao Flutuante de Sucesso -->
+    <div v-if="toastMessage" class="toast-notification">
+      {{ toastMessage }}
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
