@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Caios Barber - Agendamento Inteligente</title>
   <meta name="description" content="Agendamento online e atendimento exclusivo na Caios Barber. Escolha seu barbeiro, servicos e horario com reconhecimento automatico de cadastro.">
+  <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 </head>
@@ -15,9 +16,12 @@
   <div id="app" v-cloak>
     <!-- Topo da Aplicacao -->
     <header class="app-header">
-      <div class="brand">
-        <span class="brand-badge">BARBERSHOP</span>
-        <h1 class="brand-title">Caios Barber</h1>
+      <div class="brand-container">
+        <img src="assets/logo.png" alt="Caios Barber" class="brand-logo" onerror="this.src='logo.png'">
+        <div class="brand-text">
+          <span class="brand-badge">BARBERSHOP</span>
+          <h1 class="brand-title">Caios Barber</h1>
+        </div>
       </div>
       <button 
         id="btn-meus-agendamentos"
