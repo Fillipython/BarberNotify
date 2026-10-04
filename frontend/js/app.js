@@ -27,6 +27,7 @@ const app = createApp({
     const toastMessage = ref('');
     const showAppointmentsModal = ref(false);
     const allAppointments = ref([]);
+    const lastConfirmedAppointment = ref({});
 
     // Agendamentos filtrados exclusivamente para o cliente ativo
     const myAppointments = computed(() => {
@@ -514,16 +515,18 @@ const app = createApp({
 
       allAppointments.value.unshift(newAppointment);
       localStorage.setItem('caios_barber_appointments', JSON.stringify(allAppointments.value));
+      lastConfirmedAppointment.value = newAppointment;
 
       showToast(`Agendamento confirmado! Enviamos comprovante para ${client.value.phone}.`);
       
-      // Reseta selecoes e abre a lista de agendamentos
-      setTimeout(() => {
-        showAppointmentsModal.value = true;
-        currentStage.value = 1;
-        selectedServices.value = [];
-        selectedTime.value = '';
-      }, 1200);
+      // Avanca diretamente para a etapa 5 de sucesso no chat, sem abrir modal
+      currentStage.value = 5;
+    };
+
+    const startNewBooking = () => {
+      currentStage.value = 1;
+      selectedServices.value = [];
+      selectedTime.value = '';
     };
 
     const cancelAppointment = (appointmentId) => {
@@ -615,6 +618,8 @@ const app = createApp({
       isNextDisabled,
       mainActionLabel,
       handleMainAction,
+      lastConfirmedAppointment,
+      startNewBooking,
       cancelAppointment
     };
   }

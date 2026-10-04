@@ -35,11 +35,6 @@
 
     <!-- Conteiner Principal do Chat / Wizard -->
     <main class="chat-container" ref="chatContainer">
-      <!-- Indicador do Cliente Conectado ou Trocar de Conta -->
-      <div v-if="isIdentified || client.name || client.phone" class="client-bar">
-        <span>Cliente: <strong>{{ client.name || client.phone }}</strong></span>
-        <button class="btn-text-link" @click="resetClient">Trocar / Sair</button>
-      </div>
 
       <!-- Passo 1: Nome Completo -->
       <section v-if="step === 'ask_name'" class="chat-step fade-in">
@@ -317,20 +312,39 @@
                 </li>
               </ul>
             </div>
-            <div class="review-item total">
-              <span class="review-label">Total a Pagar no Local</span>
-              <strong class="review-total-price">R$ {{ (totalPriceCents / 100).toFixed(2).replace('.', ',') }}</strong>
+        <!-- Etapa 5: Confirmacao Concluida no Chat (sem abrir modal) -->
+        <div v-if="currentStage === 5" class="stage-section fade-in">
+          <div class="chat-bubble">
+            Tudo certo, {{ client.name }}! Seu agendamento foi confirmado.
+          </div>
+          <div class="chat-bubble">
+            Enviamos o comprovante para seu celular e e-mail. Te esperamos na barbearia!
+          </div>
+
+          <div class="success-card">
+            <div class="success-header">
+              <span class="status-badge confirmado">CONFIRMADO</span>
+              <span class="success-code">#{{ lastConfirmedAppointment.id?.substring(0, 8) }}</span>
             </div>
+            <div class="success-details">
+              <p><strong>Profissional:</strong> {{ lastConfirmedAppointment.barberName }}</p>
+              <p><strong>Data:</strong> {{ lastConfirmedAppointment.date }} as {{ lastConfirmedAppointment.time }}</p>
+              <p><strong>Servicos:</strong> {{ lastConfirmedAppointment.servicesNames?.join(', ') }}</p>
+              <p><strong>Total:</strong> R$ {{ (lastConfirmedAppointment.totalPriceCents / 100).toFixed(2).replace('.', ',') }} ({{ lastConfirmedAppointment.totalDurationLabel }})</p>
+            </div>
+            <button class="btn-primary-action full-width" @click="startNewBooking">
+              Fazer Outro Agendamento
+            </button>
           </div>
         </div>
       </section>
 
       <!-- Espacador para o botao fixo inferior nao cobrir conteudo -->
-      <div class="bottom-spacer"></div>
+      <div v-if="currentStage < 5" class="bottom-spacer"></div>
     </main>
 
     <!-- Barra Inferior Fixa com Botao Principal -->
-    <footer v-if="isIdentified" class="app-footer">
+    <footer v-if="isIdentified && currentStage < 5" class="app-footer">
       <button 
         id="btn-main-action"
         class="btn-footer-primary" 
@@ -372,9 +386,9 @@
             </div>
           </div>
         </div>
-        <div class="modal-footer" v-if="isIdentified || client.name || client.phone">
-          <button class="btn-disconnect-account" @click="resetClient">
-            Sair desta Conta / Trocar Cliente
+        <div class="modal-footer-discreet" v-if="isIdentified || client.name || client.phone">
+          <button class="btn-subtle-link" @click="resetClient">
+            Trocar de conta
           </button>
         </div>
       </div>
