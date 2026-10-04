@@ -8,3 +8,12 @@
 *.log
 .DS_Store
 Thumbs.db
+
+# Maven e Java
+backend/target/
+target/
+*.class
+*.jar
+.idea/
+*.iml
+.vscode/
