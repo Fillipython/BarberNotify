@@ -1,0 +1,10 @@
+# Variáveis de ambiente com credenciais reais
+.env
+
+# Diretórios de dados persistentes do Docker
+.docker_data/
+
+# Logs e arquivos do sistema
+*.log
+.DS_Store
+Thumbs.db
