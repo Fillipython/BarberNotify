@@ -37,40 +37,13 @@
         <button class="btn-text-link" @click="resetClient">Trocar / Sair</button>
       </div>
 
-      <!-- Passo 0: Solicitacao de Telefone (Reconhecimento Inicial) -->
-      <section v-if="step === 'ask_phone'" class="chat-step fade-in">
+      <!-- Passo 1: Nome Completo -->
+      <section v-if="step === 'ask_name'" class="chat-step fade-in">
         <div class="chat-bubble">
           Ola! Seja bem-vindo a Caios Barber.
         </div>
         <div class="chat-bubble">
-          Para iniciar ou localizar seu cadastro, digite seu telefone celular com DDD:
-        </div>
-        <div class="action-card">
-          <label for="input-phone" class="field-label">Telefone Celular</label>
-          <div class="input-group">
-            <input 
-              id="input-phone"
-              type="tel" 
-              v-model="inputPhone" 
-              placeholder="(11) 99999-8888" 
-              class="form-input"
-              @keyup.enter="handlePhoneSubmit"
-            >
-            <button id="btn-submit-phone" class="btn-primary-action" @click="handlePhoneSubmit">
-              Continuar
-            </button>
-          </div>
-          <span v-if="phoneError" class="input-error-msg">{{ phoneError }}</span>
-        </div>
-      </section>
-
-      <!-- Passo 0.5: Cadastro Novo (Nome e Email) caso nao seja reconhecido -->
-      <section v-if="step === 'ask_details'" class="chat-step fade-in">
-        <div class="chat-bubble">
-          Nao encontramos nenhum cadastro para o telefone <strong>{{ inputPhone }}</strong>.
-        </div>
-        <div class="chat-bubble">
-          Vamos fazer seu cadastro rapido. Preencha seu nome e e-mail:
+          Para comecarmos, como podemos te chamar? Digite seu nome completo:
         </div>
         <div class="action-card">
           <div class="field-block">
@@ -81,8 +54,74 @@
               v-model="inputName" 
               placeholder="Ex: Carlos Oliveira" 
               class="form-input"
+              @keyup.enter="handleNameSubmit"
             >
           </div>
+          <span v-if="nameError" class="input-error-msg">{{ nameError }}</span>
+          <button id="btn-submit-name" class="btn-primary-action full-width" @click="handleNameSubmit">
+            Continuar
+          </button>
+        </div>
+      </section>
+
+      <!-- Passo 2: Notificacoes -->
+      <section v-if="step === 'ask_notifications'" class="chat-step fade-in">
+        <div class="chat-bubble">
+          Prazer em te conhecer, {{ client.name }}!
+        </div>
+        <div class="chat-bubble">
+          Para que possamos lembra-lo de seu agendamento, ative suas notificacoes clicando abaixo:
+        </div>
+        <div class="notification-actions">
+          <button 
+            id="btn-enable-notifications" 
+            class="btn-pill-action btn-notify-yes" 
+            @click="handleNotificationsSubmit(true)"
+          >
+            Ativar Notificacoes
+          </button>
+          <button 
+            id="btn-skip-notifications" 
+            class="btn-pill-action btn-notify-skip" 
+            @click="handleNotificationsSubmit(false)"
+          >
+            Pular
+          </button>
+        </div>
+      </section>
+
+      <!-- Passo 3: Telefone com Mascara Automatica -->
+      <section v-if="step === 'ask_phone'" class="chat-step fade-in">
+        <div class="chat-bubble">
+          Agora, por favor, informe seu telefone celular:
+        </div>
+        <div class="action-card">
+          <div class="field-block">
+            <label for="input-phone" class="field-label">Telefone Celular</label>
+            <input 
+              id="input-phone"
+              type="tel" 
+              v-model="inputPhone" 
+              placeholder="(xx) x xxxx-xxxx" 
+              class="form-input"
+              @input="onPhoneInput"
+              @keyup.enter="handlePhoneSubmit"
+              maxlength="17"
+            >
+          </div>
+          <span v-if="phoneError" class="input-error-msg">{{ phoneError }}</span>
+          <button id="btn-submit-phone" class="btn-primary-action full-width" @click="handlePhoneSubmit">
+            Continuar
+          </button>
+        </div>
+      </section>
+
+      <!-- Passo 4: E-mail -->
+      <section v-if="step === 'ask_email'" class="chat-step fade-in">
+        <div class="chat-bubble">
+          Por ultimo, digite seu e-mail para enviarmos os detalhes do seu agendamento:
+        </div>
+        <div class="action-card">
           <div class="field-block">
             <label for="input-email" class="field-label">Seu E-mail</label>
             <input 
@@ -91,11 +130,12 @@
               v-model="inputEmail" 
               placeholder="Ex: carlos@gmail.com" 
               class="form-input"
+              @keyup.enter="handleEmailSubmit"
             >
           </div>
-          <span v-if="detailsError" class="input-error-msg">{{ detailsError }}</span>
-          <button id="btn-save-details" class="btn-primary-action full-width" @click="handleDetailsSubmit">
-            Salvar e Avancar
+          <span v-if="emailError" class="input-error-msg">{{ emailError }}</span>
+          <button id="btn-submit-email" class="btn-primary-action full-width" @click="handleEmailSubmit">
+            Concluir Cadastro
           </button>
         </div>
       </section>
@@ -104,29 +144,6 @@
       <section v-if="isIdentified" class="chat-thread">
         <div class="chat-bubble user-welcome">
           Como vai, {{ client.name }}! Que bom que voltou!
-        </div>
-
-        <!-- Pergunta de Notificacoes (Caso ainda nao tenha respondido) -->
-        <div v-if="step === 'ask_notifications'" class="notification-request-block fade-in">
-          <div class="chat-bubble">
-            Para que possamos lembra-lo de seu agendamento, ative suas notificacoes clicando abaixo:
-          </div>
-          <div class="notification-actions">
-            <button 
-              id="btn-enable-notifications" 
-              class="btn-pill-action btn-notify-yes" 
-              @click="setNotifications(true)"
-            >
-              Ativar Notificacoes
-            </button>
-            <button 
-              id="btn-skip-notifications" 
-              class="btn-pill-action btn-notify-skip" 
-              @click="setNotifications(false)"
-            >
-              Pular
-            </button>
-          </div>
         </div>
 
         <!-- Etapa 1: Escolha do Profissional / Barbeiro -->

@@ -12,15 +12,16 @@ const app = createApp({
     });
 
     const isIdentified = ref(false);
-    const step = ref('ask_phone'); // 'ask_phone' | 'ask_details' | 'ask_notifications' | 'flow'
+    const step = ref('ask_name'); // 'ask_name' | 'ask_notifications' | 'ask_phone' | 'ask_email' | 'flow'
     const currentStage = ref(1); // 1: Barbeiro, 2: Servicos, 3: Data/Hora, 4: Confirmacao
     
     // Inputs
-    const inputPhone = ref('');
     const inputName = ref('');
+    const inputPhone = ref('');
     const inputEmail = ref('');
+    const nameError = ref('');
     const phoneError = ref('');
-    const detailsError = ref('');
+    const emailError = ref('');
     
     // Notificacao Toast e Modal
     const toastMessage = ref('');
@@ -322,16 +323,54 @@ const app = createApp({
       return `${day}/${month}/${year}`;
     };
 
-    // Acoes do Chat
+    // Mascara de Telefone Dinamica: (xx) x xxxx-xxxx
+    const formatPhone = (val) => {
+      let digits = val.replace(/\D/g, '').substring(0, 11);
+      if (digits.length <= 2) {
+        return digits ? `(${digits}` : '';
+      }
+      if (digits.length <= 3) {
+        return `(${digits.substring(0, 2)}) ${digits.substring(2)}`;
+      }
+      if (digits.length <= 7) {
+        return `(${digits.substring(0, 2)}) ${digits.substring(2, 3)} ${digits.substring(3)}`;
+      }
+      return `(${digits.substring(0, 2)}) ${digits.substring(2, 3)} ${digits.substring(3, 7)}-${digits.substring(7, 11)}`;
+    };
+
+    const onPhoneInput = (e) => {
+      inputPhone.value = formatPhone(e.target.value);
+    };
+
+    // Acoes do Chat de Cadastro
+    const handleNameSubmit = () => {
+      nameError.value = '';
+      const trimmed = inputName.value.trim();
+      if (!trimmed || trimmed.length < 3) {
+        nameError.value = 'Por favor, informe seu nome completo (minimo 3 letras).';
+        return;
+      }
+      client.value.name = trimmed;
+      step.value = 'ask_notifications';
+    };
+
+    const handleNotificationsSubmit = (enabled) => {
+      client.value.notificationsEnabled = enabled;
+      step.value = 'ask_phone';
+      if (enabled) {
+        showToast('Notificacoes ativadas com sucesso!');
+      }
+    };
+
     const handlePhoneSubmit = () => {
       phoneError.value = '';
       const raw = inputPhone.value.replace(/\D/g, '');
       if (raw.length < 10) {
-        phoneError.value = 'Por favor, digite um telefone valido com DDD (minimo 10 digitos).';
+        phoneError.value = 'Por favor, digite um telefone celular valido com DDD.';
         return;
       }
 
-      // 1. Procura na base local / historico de clientes
+      // Procura se o telefone ja possui cadastro previo para auto-reconhecimento
       const foundInMock = mockKnownClients.find(c => c.phone.replace(/\D/g, '') === raw);
       const foundInStorage = JSON.parse(localStorage.getItem('caios_barber_known_users') || '[]')
         .find(c => c.phone.replace(/\D/g, '') === raw);
@@ -339,50 +378,35 @@ const app = createApp({
       const existing = foundInStorage || foundInMock;
 
       if (existing) {
-        client.value = { ...existing };
+        client.value.id = existing.id;
+        client.value.phone = inputPhone.value.trim();
+        client.value.email = existing.email || '';
         saveClientLocally();
         isIdentified.value = true;
         step.value = 'flow';
         currentStage.value = 1;
         showToast(`Bem-vindo de volta, ${client.value.name}!`);
       } else {
-        // Novo cliente: pede nome e email
-        step.value = 'ask_details';
+        client.value.phone = inputPhone.value.trim();
+        step.value = 'ask_email';
       }
     };
 
-    const handleDetailsSubmit = () => {
-      detailsError.value = '';
-      if (!inputName.value.trim() || inputName.value.trim().length < 3) {
-        detailsError.value = 'Por favor, informe seu nome completo.';
-        return;
-      }
-      if (!inputEmail.value.trim() || !inputEmail.value.includes('@')) {
-        detailsError.value = 'Por favor, informe um e-mail valido.';
+    const handleEmailSubmit = () => {
+      emailError.value = '';
+      const trimmed = inputEmail.value.trim();
+      if (!trimmed || !trimmed.includes('@') || !trimmed.includes('.')) {
+        emailError.value = 'Por favor, informe um e-mail valido.';
         return;
       }
 
-      client.value = {
-        id: 'c_' + Date.now(),
-        name: inputName.value.trim(),
-        phone: inputPhone.value.trim(),
-        email: inputEmail.value.trim(),
-        notificationsEnabled: false
-      };
-
-      // Pergunta de notificacoes
-      isIdentified.value = true;
-      step.value = 'ask_notifications';
-      currentStage.value = 1;
-    };
-
-    const setNotifications = (enabled) => {
-      client.value.notificationsEnabled = enabled;
+      client.value.id = 'c_' + Date.now();
+      client.value.email = trimmed;
       saveClientLocally();
+      isIdentified.value = true;
       step.value = 'flow';
-      if (enabled) {
-        showToast('Notificacoes ativadas com sucesso!');
-      }
+      currentStage.value = 1;
+      showToast('Cadastro concluido com sucesso!');
     };
 
     const selectBarber = (barber) => {
@@ -395,7 +419,6 @@ const app = createApp({
     const saveClientLocally = () => {
       localStorage.setItem('caios_barber_client', JSON.stringify(client.value));
       
-      // Adiciona tambem ao registro de usuarios conhecidos para permitir busca em outros acessos
       const known = JSON.parse(localStorage.getItem('caios_barber_known_users') || '[]');
       const existsIndex = known.findIndex(k => k.phone === client.value.phone);
       if (existsIndex > -1) {
@@ -410,14 +433,17 @@ const app = createApp({
       localStorage.removeItem('caios_barber_client');
       client.value = { id: null, name: '', phone: '', email: '', notificationsEnabled: false };
       isIdentified.value = false;
-      step.value = 'ask_phone';
+      step.value = 'ask_name';
       currentStage.value = 1;
       selectedServices.value = [];
       selectedDay.value = '';
       selectedTime.value = '';
-      inputPhone.value = '';
       inputName.value = '';
+      inputPhone.value = '';
       inputEmail.value = '';
+      nameError.value = '';
+      phoneError.value = '';
+      emailError.value = '';
     };
 
     // Controle do Botao Principal Fixo Inferior
@@ -539,8 +565,9 @@ const app = createApp({
       inputPhone,
       inputName,
       inputEmail,
+      nameError,
       phoneError,
-      detailsError,
+      emailError,
       toastMessage,
       showAppointmentsModal,
       myAppointments,
@@ -555,15 +582,18 @@ const app = createApp({
       selectedTime,
       availableDays,
       availableTimeSlots,
+      selectedDateFormattedFull,
       isServiceSelected,
       toggleService,
       selectBarber,
       selectDay,
       selectTime,
       formatDisplayDate,
+      onPhoneInput,
+      handleNameSubmit,
+      handleNotificationsSubmit,
       handlePhoneSubmit,
-      handleDetailsSubmit,
-      setNotifications,
+      handleEmailSubmit,
       resetClient,
       isNextDisabled,
       mainActionLabel,
