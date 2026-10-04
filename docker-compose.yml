@@ -2,7 +2,7 @@ services:
   # Base de Dados Relacional - PostgreSQL
   postgres_db:
     image: postgres:16-alpine
-    container_name: caios_barber_postgres
+    container_name: barber_man_postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME}
@@ -19,12 +19,12 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - caios_barber_network
+      - barber_man_network
 
   # Gerenciador Web de Banco de Dados - Adminer
   adminer:
     image: adminer:latest
-    container_name: caios_barber_adminer
+    container_name: barber_man_adminer
     restart: unless-stopped
     ports:
       - "127.0.0.1:${ADMINER_PORT:-8080}:8080"
@@ -34,26 +34,26 @@ services:
       postgres_db:
         condition: service_healthy
     networks:
-      - caios_barber_network
+      - barber_man_network
 
   # Aplicacao Web Frontend - Vue 3
   frontend:
     image: nginx:alpine
-    container_name: caios_barber_frontend
+    container_name: barber_man_frontend
     restart: unless-stopped
     ports:
       - "127.0.0.1:${FRONTEND_PORT:-3000}:80"
     volumes:
       - ./frontend:/usr/share/nginx/html:ro
     networks:
-      - caios_barber_network
+      - barber_man_network
 
   # Backend API - Spring Boot 3 & Java 21
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: caios_barber_backend
+    container_name: barber_man_backend
     restart: unless-stopped
     ports:
       - "127.0.0.1:${API_PORT:-8081}:8081"
@@ -68,12 +68,12 @@ services:
       postgres_db:
         condition: service_healthy
     networks:
-      - caios_barber_network
+      - barber_man_network
 
 volumes:
   pgdata:
     driver: local
 
 networks:
-  caios_barber_network:
+  barber_man_network:
     driver: bridge

@@ -51,21 +51,21 @@ const app = createApp({
         notificationsEnabled: true
       },
       {
-        id: 'c2-caio',
-        name: 'Caio Teste',
+        id: 'c2-carlos',
+        name: 'Carlos Oliveira',
         phone: '11988887777',
-        email: 'caio.teste@exemplo.com',
+        email: 'carlos.oliveira@exemplo.com',
         notificationsEnabled: false
       }
     ];
 
-    // Barbeiros Cadastrados (Caio como Administrador Geral)
+    // Barbeiros Cadastrados (Barber Man)
     const barbers = ref([
       {
-        id: 'barber-caio',
-        name: 'Caio Silva',
+        id: 'barber-carlos',
+        name: 'Carlos Silva',
         role: 'Fundador & Barbeiro Master',
-        bio: 'Administrador geral. 10 anos de experiencia em visagismo e cortes de alta precisao.',
+        bio: 'Administrador geral do Barber Man. 10 anos de experiencia em visagismo e cortes de alta precisao.',
         isAdmin: true,
         avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
       },
@@ -89,7 +89,7 @@ const app = createApp({
 
     const selectedBarber = ref(barbers.value[0]);
 
-    // Lista Completa dos 16 Servicos do Caios Barber
+    // Lista Completa dos 16 Servicos do Barber Man
     const services = ref([
       {
         id: 'srv-botox',
@@ -385,7 +385,7 @@ const app = createApp({
 
       // Procura se o telefone ja possui cadastro previo para auto-reconhecimento
       const foundInMock = mockKnownClients.find(c => c.phone.replace(/\D/g, '') === raw);
-      const foundInStorage = JSON.parse(localStorage.getItem('caios_barber_known_users') || '[]')
+      const foundInStorage = JSON.parse(localStorage.getItem('barber_man_known_users') || '[]')
         .find(c => c.phone.replace(/\D/g, '') === raw);
 
       const existing = foundInStorage || foundInMock;
@@ -430,20 +430,20 @@ const app = createApp({
     };
 
     const saveClientLocally = () => {
-      localStorage.setItem('caios_barber_client', JSON.stringify(client.value));
+      localStorage.setItem('barber_man_client', JSON.stringify(client.value));
       
-      const known = JSON.parse(localStorage.getItem('caios_barber_known_users') || '[]');
+      const known = JSON.parse(localStorage.getItem('barber_man_known_users') || '[]');
       const existsIndex = known.findIndex(k => k.phone === client.value.phone);
       if (existsIndex > -1) {
         known[existsIndex] = client.value;
       } else {
         known.push(client.value);
       }
-      localStorage.setItem('caios_barber_known_users', JSON.stringify(known));
+      localStorage.setItem('barber_man_known_users', JSON.stringify(known));
     };
 
     const resetClient = () => {
-      localStorage.removeItem('caios_barber_client');
+      localStorage.removeItem('barber_man_client');
       client.value = { id: null, name: '', phone: '', email: '', notificationsEnabled: false };
       isIdentified.value = false;
       step.value = 'ask_name';
@@ -514,7 +514,7 @@ const app = createApp({
       };
 
       allAppointments.value.unshift(newAppointment);
-      localStorage.setItem('caios_barber_appointments', JSON.stringify(allAppointments.value));
+      localStorage.setItem('barber_man_appointments', JSON.stringify(allAppointments.value));
       lastConfirmedAppointment.value = newAppointment;
 
       showToast(`Agendamento confirmado! Enviamos comprovante para ${client.value.phone}.`);
@@ -537,7 +537,7 @@ const app = createApp({
         return a;
       });
       allAppointments.value = list;
-      localStorage.setItem('caios_barber_appointments', JSON.stringify(list));
+      localStorage.setItem('barber_man_appointments', JSON.stringify(list));
       showToast('Agendamento cancelado com sucesso.');
     };
 
@@ -551,7 +551,7 @@ const app = createApp({
     // Inicializacao
     onMounted(() => {
       // Carrega agendamentos salvos
-      const stored = localStorage.getItem('caios_barber_appointments');
+      const stored = localStorage.getItem('barber_man_appointments');
       if (stored) {
         try {
           allAppointments.value = JSON.parse(stored);
@@ -561,7 +561,7 @@ const app = createApp({
       }
 
       // Verifica se cliente ja esta salvo no navegador (2a iteracao em diante)
-      const savedClient = localStorage.getItem('caios_barber_client');
+      const savedClient = localStorage.getItem('barber_man_client');
       if (savedClient) {
         try {
           const parsed = JSON.parse(savedClient);

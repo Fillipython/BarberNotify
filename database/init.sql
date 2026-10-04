@@ -1,8 +1,8 @@
--- Script de Inicializacao da Base de Dados: Caios Barber
+-- Script de Inicializacao da Base de Dados: Barber Man
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- Tabela de Barbeiros / Profissionais (Caio como administrador geral)
+-- Tabela de Barbeiros / Profissionais (Barbeiro Master como fundador e administrador geral)
 CREATE TABLE IF NOT EXISTS barbers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(150) NOT NULL,
@@ -82,12 +82,12 @@ CREATE TABLE IF NOT EXISTS notification_logs (
 
 -- Dados Iniciais: Barbeiros
 INSERT INTO barbers (name, nickname, phone, email, bio, is_admin, is_active) VALUES
-('Caio Silva', 'Caio Mestre', '11988880001', 'caio@caiosbarber.com.br', 'Fundador e Administrador Geral. Especialista em visagismo e cortes premium.', TRUE, TRUE),
-('Lucas Santana', 'Lucas Navalha', '11988880002', 'lucas@caiosbarber.com.br', 'Especialista em degrade navalhado e barba terapia.', FALSE, TRUE),
-('Matheus Oliveira', 'Matheus Fade', '11988880003', 'matheus@caiosbarber.com.br', 'Especialista em platinados, luzes e cortes modernos.', FALSE, TRUE)
+('Carlos Silva', 'Mestre Carlos', '11988880001', 'contato@barberman.com.br', 'Fundador e Administrador Geral do Barber Man. Especialista em visagismo e cortes premium.', TRUE, TRUE),
+('Lucas Santana', 'Lucas Navalha', '11988880002', 'lucas@barberman.com.br', 'Especialista em degrade navalhado e barba terapia.', FALSE, TRUE),
+('Matheus Oliveira', 'Matheus Fade', '11988880003', 'matheus@barberman.com.br', 'Especialista em platinados, luzes e cortes modernos.', FALSE, TRUE)
 ON CONFLICT (phone) DO NOTHING;
 
--- Dados Iniciais: Todos os 16 Servicos do Caios Barber
+-- Dados Iniciais: Todos os 16 Servicos do Barber Man
 INSERT INTO services (name, price_cents, duration_minutes) VALUES
 ('Botox/desondulacao', 5000, 60),
 ('Selagem', 7500, 60),
