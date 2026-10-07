@@ -38,6 +38,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(body);
     }
 
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrity(org.springframework.dao.DataIntegrityViolationException ex) {
+        return buildResponse(HttpStatus.CONFLICT, "Este horário acabou de ser reservado por outro cliente. Por favor, escolha outro horário.");
+    }
+
+    @ExceptionHandler(org.springframework.dao.CannotAcquireLockException.class)
+    public ResponseEntity<Map<String, Object>> handleLockAcquisition(org.springframework.dao.CannotAcquireLockException ex) {
+        return buildResponse(HttpStatus.CONFLICT, "Houve alta concorrência neste horário. Por favor, tente novamente.");
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Ocorreu um erro interno no servidor.");

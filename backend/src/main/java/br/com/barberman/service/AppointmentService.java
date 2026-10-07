@@ -7,6 +7,7 @@ import br.com.barberman.model.*;
 import br.com.barberman.repository.AppointmentRepository;
 import br.com.barberman.repository.NotificationLogRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.*;
@@ -38,10 +39,14 @@ public class AppointmentService {
         this.notificationLogRepository = notificationLogRepository;
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public AppointmentResponseDto createAppointment(AppointmentRequestDto dto) {
+        // Bloqueio pessimista exclusivo na linha do Barbeiro no banco de dados.
+        // Garante atomicidade e impede condicao de corrida (race condition) entre clientes simultaneos:
+        // Apenas a primeira requisicao obtem o lock e efetua a reserva;
+        // Requisicoes concorrentes aguardam o lock e, ao adquirirem, detectam o conflito de horario e sao rejeitadas com HTTP 409.
+        Barber barber = barberService.findEntityByIdForBooking(dto.getBarberId());
         Client client = clientService.findEntityById(dto.getClientId());
-        Barber barber = barberService.findEntityById(dto.getBarberId());
         List<ServiceItem> services = serviceItemService.findEntitiesByIds(dto.getServiceIds());
 
         int totalMinutes = services.stream().mapToInt(ServiceItem::getDurationMinutes).sum();
@@ -50,11 +55,11 @@ public class AppointmentService {
         OffsetDateTime start = dto.getScheduledAt();
         OffsetDateTime end = start.plusMinutes(totalMinutes);
 
-        // Verificacao de conflito de agenda no barbeiro
+        // Verificacao rigorosa de conflito de agenda no barbeiro com lock ativo
         List<Appointment> conflicts = appointmentRepository.findActiveByBarberAndPeriod(
                 barber.getId(),
-                start.minusMinutes(120),
-                end.plusMinutes(120)
+                start.minusMinutes(240),
+                end.plusMinutes(240)
         );
 
         boolean hasOverlap = conflicts.stream().anyMatch(existing -> {
@@ -154,7 +159,11 @@ public class AppointmentService {
         OffsetDateTime startOfDay = date.atStartOfDay(zone).toOffsetDateTime();
         OffsetDateTime endOfDay = date.atTime(23, 59, 59).atZone(zone).toOffsetDateTime();
 
-        List<Appointment> dayAppointments = appointmentRepository.findActiveByBarberAndPeriod(barberId, startOfDay, endOfDay);
+        List<Appointment> dayAppointments = appointmentRepository.findActiveByBarberAndPeriod(
+                barberId,
+                startOfDay.minusHours(4),
+                endOfDay.plusHours(4)
+        );
 
         String[] baseTimes = {
             "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
@@ -170,6 +179,25 @@ public class AppointmentService {
             OffsetDateTime slotStart = date.atTime(lt).atZone(zone).toOffsetDateTime();
             OffsetDateTime slotEnd = slotStart.plusMinutes(duration);
 
+            // Valida se o atendimento cabe dentro do turno de trabalho da barbearia
+            LocalTime endTime = slotEnd.toLocalTime();
+            boolean fitsShift = true;
+            if (lt.isBefore(LocalTime.of(14, 0))) {
+                if (endTime.isAfter(LocalTime.of(14, 0)) || endTime.isBefore(lt)) {
+                    fitsShift = false;
+                }
+            } else {
+                if (endTime.isAfter(LocalTime.of(18, 30)) || endTime.isBefore(lt)) {
+                    fitsShift = false;
+                }
+            }
+
+            if (!fitsShift) {
+                result.add(new TimeSlotDto(t, false));
+                continue;
+            }
+
+            // Valida conflito com agendamentos existentes (ocupacao continua de horarios)
             boolean isAvailable = dayAppointments.stream().noneMatch(existing -> {
                 OffsetDateTime existingStart = existing.getScheduledAt();
                 OffsetDateTime existingEnd = existingStart.plusMinutes(existing.getTotalDurationMinutes());

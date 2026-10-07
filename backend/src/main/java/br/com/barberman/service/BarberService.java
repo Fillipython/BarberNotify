@@ -31,4 +31,10 @@ public class BarberService {
         return barberRepository.findByIdAndIsActiveTrue(id)
                 .orElseThrow(() -> new IllegalArgumentException("Barbeiro nao encontrado ou inativo"));
     }
+
+    @Transactional
+    public Barber findEntityByIdForBooking(UUID id) {
+        return barberRepository.findByIdAndIsActiveTrueWithLock(id)
+                .orElseThrow(() -> new IllegalArgumentException("Barbeiro nao encontrado ou inativo"));
+    }
 }

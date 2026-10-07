@@ -57,6 +57,8 @@ CREATE TABLE IF NOT EXISTS appointments (
 );
 
 CREATE INDEX IF NOT EXISTS idx_appointments_barber_date ON appointments (barber_id, scheduled_at);
+-- Restricao de unicidade no banco: impede fisicamente que duas transacoes ativas reservem o mesmo barbeiro no mesmo horario exato
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_barber_active_slot ON appointments (barber_id, scheduled_at) WHERE (status <> 'CANCELLED');
 
 -- Tabela N:N de Servicos selecionados no Agendamento (permite mais de um servico)
 CREATE TABLE IF NOT EXISTS appointment_services (
