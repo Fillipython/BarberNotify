@@ -270,10 +270,11 @@
                 v-for="slot in availableTimeSlots" 
                 :key="slot.time"
                 :disabled="!slot.available"
-                :class="['time-slot-btn', { selected: selectedTime === slot.time, disabled: !slot.available }]"
-                @click="selectTime(slot.time)"
+                :class="['time-slot-btn', { selected: selectedTime === slot.time, unavailable: !slot.available }]"
+                @click="slot.available && selectTime(slot.time)"
               >
-                {{ slot.time }}
+                <span class="slot-time-text">{{ slot.time }}</span>
+                <span v-if="!slot.available" class="slot-badge-unavailable">Ocupado</span>
               </button>
             </div>
           </div>

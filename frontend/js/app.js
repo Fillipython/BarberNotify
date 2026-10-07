@@ -14,7 +14,7 @@ const app = createApp({
     const isIdentified = ref(false);
     const step = ref('ask_name'); // 'ask_name' | 'ask_notifications' | 'ask_phone' | 'ask_email' | 'flow'
     const currentStage = ref(1); // 1: Barbeiro, 2: Servicos, 3: Data/Hora, 4: Confirmacao
-    
+
     // Inputs
     const inputName = ref('');
     const inputPhone = ref('');
@@ -22,7 +22,7 @@ const app = createApp({
     const nameError = ref('');
     const phoneError = ref('');
     const emailError = ref('');
-    
+
     // Notificacao Toast e Modal
     const toastMessage = ref('');
     const showAppointmentsModal = ref(false);
@@ -59,10 +59,10 @@ const app = createApp({
       }
     ];
 
-    // Barbeiros Cadastrados (Barber Man)
+    // Barbeiros Cadastrados (Barber Man) com UUIDs reais do PostgreSQL
     const barbers = ref([
       {
-        id: 'barber-carlos',
+        id: '256ae6f2-f471-4d6f-8874-511bb968076d',
         name: 'Carlos Silva',
         role: 'Fundador & Barbeiro Master',
         bio: 'Administrador geral do Barber Man. 10 anos de experiencia em visagismo e cortes de alta precisao.',
@@ -70,7 +70,7 @@ const app = createApp({
         avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
       },
       {
-        id: 'barber-lucas',
+        id: '3542d755-e20f-431f-b783-f1beb18b8a0f',
         name: 'Lucas Santana',
         role: 'Barbeiro Especialista',
         bio: 'Referencia em degrade navalhado, barboterapia e acabamentos detalhados.',
@@ -78,7 +78,7 @@ const app = createApp({
         avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80'
       },
       {
-        id: 'barber-matheus',
+        id: 'b202cd1e-fd65-4008-be9d-b7e301dba107',
         name: 'Matheus Oliveira',
         role: 'Barbeiro & Colorista',
         bio: 'Especialista em platinados, luzes, pigmentacao e cortes modernos.',
@@ -89,34 +89,34 @@ const app = createApp({
 
     const selectedBarber = ref(barbers.value[0]);
 
-    // Lista Completa dos 16 Servicos do Barber Man
+    // Lista Exata dos 14 Servicos Solicitados com Precos e Duracoes
     const services = ref([
       {
-        id: 'srv-botox',
-        name: 'Botox/desondulacao',
+        id: '71255167-685c-4401-bafd-ba7b3d28a5da',
+        name: 'Botox/desondulaçao',
         priceCents: 5000,
         durationMinutes: 60,
         durationLabel: '1hr',
         image: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=300&auto=format&fit=crop&q=80'
       },
       {
-        id: 'srv-selagem',
+        id: 'ad0075d8-7a6a-4cb6-a706-3058da6f47f6',
         name: 'Selagem',
         priceCents: 7500,
         durationMinutes: 60,
         durationLabel: '1hr',
-        image: 'https://images.unsplash.com/photo-1517832606589-7629c3397143?w=300&auto=format&fit=crop&q=80'
+        image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=300&auto=format&fit=crop&q=80'
       },
       {
-        id: 'srv-hidratacao',
-        name: 'Hidratacao',
+        id: '6ebfeaed-607f-490a-8875-a4add597cc8a',
+        name: 'Hidratação',
         priceCents: 2000,
         durationMinutes: 15,
         durationLabel: '15min',
         image: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=300&auto=format&fit=crop&q=80'
       },
       {
-        id: 'srv-alisamento',
+        id: '5caac1e8-fbca-4b97-a107-13782cad4b40',
         name: 'Alisamento',
         priceCents: 2000,
         durationMinutes: 15,
@@ -124,15 +124,15 @@ const app = createApp({
         image: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=300&auto=format&fit=crop&q=80'
       },
       {
-        id: 'srv-pigmentacao',
-        name: 'Pigmentacao',
+        id: 'a888baaf-c1b6-4161-aa50-d586b81ce2c8',
+        name: 'Pigmentação',
         priceCents: 2000,
         durationMinutes: 30,
         durationLabel: '30min',
         image: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=300&auto=format&fit=crop&q=80'
       },
       {
-        id: 'srv-corte',
+        id: 'af31c8c8-b37a-4164-81c7-85aeeaad0f72',
         name: 'Corte',
         priceCents: 3000,
         durationMinutes: 30,
@@ -140,15 +140,15 @@ const app = createApp({
         image: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=300&auto=format&fit=crop&q=80'
       },
       {
-        id: 'srv-corte-kids',
+        id: 'b0243eb9-2acc-4111-bf3c-3bd0df6aa9bb',
         name: 'Corte kids',
         priceCents: 3000,
         durationMinutes: 30,
         durationLabel: '30min',
-        image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&auto=format&fit=crop&q=80'
+        image: 'assets/services/corte_kids.jpg'
       },
       {
-        id: 'srv-corte-sobrancelha',
+        id: 'b966c13f-7a2a-4023-b3e4-67119c3bd6cf',
         name: 'Corte & Sobrancelha',
         priceCents: 3500,
         durationMinutes: 30,
@@ -156,7 +156,7 @@ const app = createApp({
         image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=300&auto=format&fit=crop&q=80'
       },
       {
-        id: 'srv-platinado-corte',
+        id: 'adfdc695-da63-4b35-98d0-d704ba3d5c76',
         name: 'Platinado & Corte',
         priceCents: 13000,
         durationMinutes: 60,
@@ -164,15 +164,15 @@ const app = createApp({
         image: 'https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?w=300&auto=format&fit=crop&q=80'
       },
       {
-        id: 'srv-luzes-corte',
+        id: 'c94cfaa6-b11d-4665-a2d0-057e7da7d0bc',
         name: 'Luzes & Corte',
         priceCents: 10000,
         durationMinutes: 60,
         durationLabel: '1hr',
-        image: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=300&auto=format&fit=crop&q=80'
+        image: 'assets/services/luzes_corte.jpg'
       },
       {
-        id: 'srv-corte-barba',
+        id: '7bac199d-6214-4f23-8d3d-900080bff0bd',
         name: 'Corte & Barba',
         priceCents: 5000,
         durationMinutes: 60,
@@ -180,44 +180,28 @@ const app = createApp({
         image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=300&auto=format&fit=crop&q=80'
       },
       {
-        id: 'srv-barba',
+        id: '68c71d3d-7a24-4a3d-8576-25c7d56ccff4',
         name: 'Barba',
         priceCents: 2500,
         durationMinutes: 30,
         durationLabel: '30min',
-        image: 'https://images.unsplash.com/photo-1517832606589-7629c3397143?w=300&auto=format&fit=crop&q=80'
+        image: './assets/services/barba.jpg'
       },
       {
-        id: 'srv-corte-barba-sobrancelha',
+        id: 'e982fc13-3932-447e-b777-e5f66ea065df',
         name: 'Corte, Barba & Sobrancelha',
         priceCents: 5500,
         durationMinutes: 60,
         durationLabel: '1hr',
-        image: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=300&auto=format&fit=crop&q=80'
+        image: 'assets/services/corte_barba_sobrancelha.jpg'
       },
       {
-        id: 'srv-corte-barba-simples',
+        id: '59448ee1-f364-4862-baa6-8bbf46da6b34',
         name: 'Corte & barba simples',
         priceCents: 4000,
         durationMinutes: 30,
         durationLabel: '30min',
-        image: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=300&auto=format&fit=crop&q=80'
-      },
-      {
-        id: 'srv-corte-sobrancelha-barba-simples',
-        name: 'Corte, sobrancelha & barba simples',
-        priceCents: 4500,
-        durationMinutes: 30,
-        durationLabel: '30min',
-        image: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=300&auto=format&fit=crop&q=80'
-      },
-      {
-        id: 'srv-pezinho-barba',
-        name: 'Pezinho & Barba',
-        priceCents: 3000,
-        durationMinutes: 30,
-        durationLabel: '30min',
-        image: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=300&auto=format&fit=crop&q=80'
+        image: 'assets/services/corte_barba_simples.jpg'
       }
     ]);
 
@@ -234,6 +218,9 @@ const app = createApp({
         selectedServices.value.splice(index, 1);
       } else {
         selectedServices.value.push(service);
+      }
+      if (selectedDay.value) {
+        fetchSlots();
       }
     };
 
@@ -258,12 +245,68 @@ const app = createApp({
     // Datas e Horarios Disponiveis
     const selectedDay = ref('');
     const selectedTime = ref('');
+    const apiSlots = ref([]);
+
+    // BroadcastChannel para sincronizacao imediata entre abas do navegador
+    const syncChannel = typeof window !== 'undefined' && window.BroadcastChannel ? new BroadcastChannel('barber_notify_sync') : null;
+    if (syncChannel) {
+      syncChannel.onmessage = (event) => {
+        if (event.data === 'appointment_changed') {
+          fetchSlots();
+        }
+      };
+    }
+
+    const fetchSlots = async () => {
+      if (!selectedBarber.value?.id || !selectedDay.value) return;
+      try {
+        const duration = totalDurationMinutes.value > 0 ? totalDurationMinutes.value : 30;
+        const res = await fetch(`http://localhost:8081/api/appointments/slots?barberId=${selectedBarber.value.id}&date=${selectedDay.value}&duration=${duration}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            apiSlots.value = data;
+
+            // Se o horario que o usuario tinha selecionado foi reservado por outro cliente em tempo real
+            if (selectedTime.value) {
+              const currentSlot = data.find(s => s.time === selectedTime.value);
+              if (currentSlot && !currentSlot.available) {
+                const lostTime = selectedTime.value;
+                selectedTime.value = '';
+                showToast(`Atenção: O horário ${lostTime} acabou de ser reservado por outro cliente!`);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('API slots offline, usando fallback local', e);
+      }
+    };
+
+    // Polling em tempo real (atualiza a cada 2.5s se estiver na etapa de horarios)
+    let slotsPollingInterval = null;
+    const startSlotsPolling = () => {
+      stopSlotsPolling();
+      fetchSlots();
+      slotsPollingInterval = setInterval(() => {
+        if (currentStage.value === 3) {
+          fetchSlots();
+        }
+      }, 2500);
+    };
+
+    const stopSlotsPolling = () => {
+      if (slotsPollingInterval) {
+        clearInterval(slotsPollingInterval);
+        slotsPollingInterval = null;
+      }
+    };
 
     const availableDays = computed(() => {
       const days = [];
       const weekdays = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
       const months = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
-      
+
       const now = new Date();
       for (let i = 0; i < 10; i++) {
         const d = new Date(now);
@@ -286,7 +329,10 @@ const app = createApp({
     });
 
     const availableTimeSlots = computed(() => {
-      // Horarios identicos a referencia
+      if (apiSlots.value && apiSlots.value.length > 0) {
+        return apiSlots.value;
+      }
+
       const slots = [
         '09:00', '09:30', '10:00',
         '10:30', '11:00', '11:30',
@@ -296,14 +342,10 @@ const app = createApp({
         '18:00'
       ];
 
-      return slots.map((time) => {
-        // Conflito simulado em alguns horarios especificos se for no primeiro dia
-        const isConflict = false;
-        return {
-          time,
-          available: !isConflict
-        };
-      });
+      return slots.map((time) => ({
+        time,
+        available: true
+      }));
     });
 
     const selectedDateFormattedFull = computed(() => {
@@ -324,6 +366,7 @@ const app = createApp({
     const selectDay = (isoDate) => {
       selectedDay.value = isoDate;
       selectedTime.value = ''; // reseta horario ao mudar o dia
+      fetchSlots();
     };
 
     const selectTime = (time) => {
@@ -375,7 +418,7 @@ const app = createApp({
       }
     };
 
-    const handlePhoneSubmit = () => {
+    const handlePhoneSubmit = async () => {
       phoneError.value = '';
       const raw = inputPhone.value.replace(/\D/g, '');
       if (raw.length < 10) {
@@ -383,29 +426,33 @@ const app = createApp({
         return;
       }
 
-      // Procura se o telefone ja possui cadastro previo para auto-reconhecimento
-      const foundInMock = mockKnownClients.find(c => c.phone.replace(/\D/g, '') === raw);
-      const foundInStorage = JSON.parse(localStorage.getItem('barber_man_known_users') || '[]')
-        .find(c => c.phone.replace(/\D/g, '') === raw);
+      client.value.phone = inputPhone.value.trim();
 
-      const existing = foundInStorage || foundInMock;
-
-      if (existing) {
-        client.value.id = existing.id;
-        client.value.phone = inputPhone.value.trim();
-        client.value.email = existing.email || '';
-        saveClientLocally();
-        isIdentified.value = true;
-        step.value = 'flow';
-        currentStage.value = 1;
-        showToast(`Bem-vindo de volta, ${client.value.name}!`);
-      } else {
-        client.value.phone = inputPhone.value.trim();
-        step.value = 'ask_email';
+      // Procura se o cliente ja possui cadastro no backend PostgreSQL
+      try {
+        const checkRes = await fetch(`http://localhost:8081/api/clients?phone=${raw}`);
+        if (checkRes.ok) {
+          const clientData = await checkRes.json();
+          if (clientData && clientData.id) {
+            client.value.id = clientData.id;
+            client.value.name = clientData.name || client.value.name;
+            client.value.email = clientData.email || '';
+            saveClientLocally();
+            isIdentified.value = true;
+            step.value = 'flow';
+            currentStage.value = 1;
+            showToast(`Bem-vindo de volta, ${client.value.name}!`);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Erro ao consultar cliente na API:', e);
       }
+
+      step.value = 'ask_email';
     };
 
-    const handleEmailSubmit = () => {
+    const handleEmailSubmit = async () => {
       emailError.value = '';
       const trimmed = inputEmail.value.trim();
       if (!trimmed || !trimmed.includes('@') || !trimmed.includes('.')) {
@@ -413,8 +460,28 @@ const app = createApp({
         return;
       }
 
-      client.value.id = 'c_' + Date.now();
       client.value.email = trimmed;
+
+      // Cadastra no backend PostgreSQL e obtem o UUID real
+      try {
+        const clientRes = await fetch('http://localhost:8081/api/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: client.value.name,
+            phone: client.value.phone,
+            email: trimmed,
+            notificationsEnabled: client.value.notificationsEnabled
+          })
+        });
+        if (clientRes.ok) {
+          const clientData = await clientRes.json();
+          client.value.id = clientData.id;
+        }
+      } catch (e) {
+        console.warn('Erro ao registrar cliente na API:', e);
+      }
+
       saveClientLocally();
       isIdentified.value = true;
       step.value = 'flow';
@@ -424,6 +491,9 @@ const app = createApp({
 
     const selectBarber = (barber) => {
       selectedBarber.value = barber;
+      if (selectedDay.value) {
+        fetchSlots();
+      }
       if (currentStage.value === 1) {
         currentStage.value = 2;
       }
@@ -431,7 +501,7 @@ const app = createApp({
 
     const saveClientLocally = () => {
       localStorage.setItem('barber_man_client', JSON.stringify(client.value));
-      
+
       const known = JSON.parse(localStorage.getItem('barber_man_known_users') || '[]');
       const existsIndex = known.findIndex(k => k.phone === client.value.phone);
       if (existsIndex > -1) {
@@ -486,41 +556,132 @@ const app = createApp({
     const handleMainAction = () => {
       if (currentStage.value < 4) {
         currentStage.value++;
-        if (currentStage.value === 3 && !selectedDay.value && availableDays.value.length > 0) {
-          const firstWorkday = availableDays.value.find(d => d.isWorkday);
-          selectedDay.value = firstWorkday ? firstWorkday.isoDate : availableDays.value[0].isoDate;
+        if (currentStage.value === 3) {
+          if (!selectedDay.value && availableDays.value.length > 0) {
+            const firstWorkday = availableDays.value.find(d => d.isWorkday);
+            selectedDay.value = firstWorkday ? firstWorkday.isoDate : availableDays.value[0].isoDate;
+          }
+          startSlotsPolling();
+        } else {
+          stopSlotsPolling();
         }
       } else if (currentStage.value === 4) {
         finalizeAppointment();
       }
     };
 
-    const finalizeAppointment = () => {
-      const newAppointment = {
-        id: 'apt_' + Date.now(),
-        clientId: client.value.id,
-        clientName: client.value.name,
-        clientPhone: client.value.phone,
-        clientEmail: client.value.email,
-        barberId: selectedBarber.value.id,
-        barberName: selectedBarber.value.name,
-        servicesNames: selectedServices.value.map(s => s.name),
-        totalPriceCents: totalPriceCents.value,
-        totalDurationLabel: totalDurationLabel.value,
-        date: formatDisplayDate(selectedDay.value),
-        time: selectedTime.value,
-        status: 'CONFIRMADO',
-        createdAt: new Date().toISOString()
-      };
+    const finalizeAppointment = async () => {
+      if (!selectedTime.value || !selectedDay.value) {
+        showToast('Por favor, selecione uma data e horário.');
+        currentStage.value = 3;
+        startSlotsPolling();
+        return;
+      }
 
-      allAppointments.value.unshift(newAppointment);
-      localStorage.setItem('barber_man_appointments', JSON.stringify(allAppointments.value));
-      lastConfirmedAppointment.value = newAppointment;
+      // Verifica se o slot selecionado ainda esta livre
+      const chosenSlot = apiSlots.value.find(s => s.time === selectedTime.value);
+      if (chosenSlot && !chosenSlot.available) {
+        showToast('Este horário não está mais disponível. Por favor, selecione outro.');
+        currentStage.value = 3;
+        selectedTime.value = '';
+        startSlotsPolling();
+        return;
+      }
 
-      showToast(`Agendamento confirmado! Enviamos comprovante para ${client.value.phone}.`);
-      
-      // Avanca diretamente para a etapa 5 de sucesso no chat, sem abrir modal
-      currentStage.value = 5;
+      const scheduledIso = `${selectedDay.value}T${selectedTime.value}:00-03:00`;
+      let clientDbId = client.value.id;
+
+      // 1. Garante que o cliente esta cadastrado no backend para obter UUID real
+      try {
+        const clientRes = await fetch('http://localhost:8081/api/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: client.value.name,
+            phone: client.value.phone,
+            email: client.value.email || null,
+            notificationsEnabled: client.value.notificationsEnabled
+          })
+        });
+        if (clientRes.ok) {
+          const clientData = await clientRes.json();
+          clientDbId = clientData.id;
+          client.value.id = clientDbId;
+          saveClientLocally();
+        } else {
+          showToast('Erro ao validar cadastro no servidor. Tente novamente.');
+          return;
+        }
+      } catch (e) {
+        showToast('Não foi possível conectar ao servidor. Verifique a conexão.');
+        return;
+      }
+
+      // 2. Envio da reserva para a API (com controle atomico e lock pessimista no PostgreSQL)
+      try {
+        const aptRes = await fetch('http://localhost:8081/api/appointments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            clientId: clientDbId,
+            barberId: selectedBarber.value.id,
+            serviceIds: selectedServices.value.map(s => s.id),
+            scheduledAt: scheduledIso,
+            clientNotes: 'Agendamento Barber Man Web'
+          })
+        });
+
+        // 3. Garantia de atomicidade: se outro cliente confirmou primeiro, o servidor rejeita com 409
+        if (aptRes.status === 409) {
+          const errData = await aptRes.json().catch(() => ({}));
+          showToast(errData.message || 'Ops! Este horário acabou de ser reservado por outro cliente. Por favor, escolha outro horário.');
+          currentStage.value = 3; // Mantem na etapa de data/hora
+          selectedTime.value = '';
+          startSlotsPolling();
+          return;
+        }
+
+        if (!aptRes.ok) {
+          const errData = await aptRes.json().catch(() => ({}));
+          showToast(errData.message || 'Ocorreu um erro ao confirmar o agendamento no servidor.');
+          currentStage.value = 3;
+          startSlotsPolling();
+          return;
+        }
+
+        const aptData = await aptRes.json();
+
+        // 4. Agendamento validado e salvo com sucesso no banco de dados!
+        const newAppointment = {
+          id: aptData.id,
+          clientId: clientDbId,
+          clientName: client.value.name,
+          clientPhone: client.value.phone,
+          clientEmail: client.value.email,
+          barberId: selectedBarber.value.id,
+          barberName: selectedBarber.value.name,
+          servicesNames: selectedServices.value.map(s => s.name),
+          totalPriceCents: totalPriceCents.value,
+          totalDurationLabel: totalDurationLabel.value,
+          date: formatDisplayDate(selectedDay.value),
+          time: selectedTime.value,
+          status: 'CONFIRMADO',
+          createdAt: new Date().toISOString()
+        };
+
+        allAppointments.value.unshift(newAppointment);
+        localStorage.setItem('barber_man_appointments', JSON.stringify(allAppointments.value));
+        lastConfirmedAppointment.value = newAppointment;
+
+        // Notifica outras abas locais para atualizarem os slots
+        syncChannel?.postMessage('appointment_changed');
+
+        stopSlotsPolling();
+        showToast(`Agendamento confirmado com sucesso!`);
+        currentStage.value = 5;
+      } catch (err) {
+        showToast('Falha na comunicação com o servidor ao confirmar reserva.');
+      }
     };
 
     const startNewBooking = () => {
@@ -575,6 +736,42 @@ const app = createApp({
           console.error(e);
         }
       }
+
+      // Sincroniza lista de barbeiros com a API do backend
+      fetch('http://localhost:8081/api/barbers')
+        .then(r => r.json())
+        .then(data => {
+          if (Array.isArray(data) && data.length > 0) {
+            barbers.value = data.map((b, idx) => ({
+              id: b.id,
+              name: b.name,
+              role: b.isAdmin ? 'Fundador & Barbeiro Master' : 'Barbeiro Especialista',
+              bio: b.bio || '',
+              isAdmin: b.isAdmin,
+              avatar: b.avatarUrl || barbers.value[idx]?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
+            }));
+            selectedBarber.value = barbers.value[0];
+          }
+        })
+        .catch(e => console.warn('Usando barbeiros locais:', e));
+
+      // Sincroniza UUIDs dos servicos com o backend preservando a lista e fotos
+      fetch('http://localhost:8081/api/services')
+        .then(r => r.json())
+        .then(data => {
+          if (Array.isArray(data) && data.length > 0) {
+            services.value.forEach(localSrv => {
+              const matched = data.find(apiSrv =>
+                apiSrv.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "") ===
+                localSrv.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "")
+              );
+              if (matched) {
+                localSrv.id = matched.id;
+              }
+            });
+          }
+        })
+        .catch(e => console.warn('Usando servicos locais:', e));
     });
 
     return {

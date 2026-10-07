@@ -707,20 +707,25 @@ body {
 }
 
 .time-slot-btn {
-  background: #394250;
-  border: 1px solid transparent;
+  background: #2a3342;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   color: #ffffff;
-  padding: 13px 4px;
-  font-size: 14.5px;
+  padding: 8px 4px;
+  font-size: 14px;
   font-weight: 600;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
 }
 
 .time-slot-btn:hover:not(:disabled) {
-  background: #465264;
+  background: #3b4759;
   border-color: #60a5fa;
 }
 
@@ -730,10 +735,34 @@ body {
   box-shadow: 0 4px 12px rgba(29, 78, 216, 0.4);
 }
 
+.time-slot-btn:disabled,
+.time-slot-btn.unavailable,
 .time-slot-btn.disabled {
-  opacity: 0.25;
+  background: rgba(26, 18, 22, 0.7);
+  border: 1px dashed rgba(239, 68, 68, 0.35);
+  color: #64748b;
+  opacity: 0.65;
   cursor: not-allowed;
+}
+
+.time-slot-btn:disabled .slot-time-text,
+.time-slot-btn.unavailable .slot-time-text {
   text-decoration: line-through;
+  color: #71717a;
+}
+
+.slot-badge-unavailable {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 2px 5px;
+  border-radius: 4px;
+  margin-top: 2px;
+  line-height: 1;
 }
 
 /* Previa Inferior da Data por Extenso */
