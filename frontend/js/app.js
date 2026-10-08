@@ -97,7 +97,7 @@ const app = createApp({
         priceCents: 5000,
         durationMinutes: 60,
         durationLabel: '1hr',
-        image: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=300&auto=format&fit=crop&q=80'
+        image: 'assets/services/botox_desondulacao.jpg'
       },
       {
         id: 'ad0075d8-7a6a-4cb6-a706-3058da6f47f6',
@@ -105,7 +105,7 @@ const app = createApp({
         priceCents: 7500,
         durationMinutes: 60,
         durationLabel: '1hr',
-        image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=300&auto=format&fit=crop&q=80'
+        image: 'assets/services/selagem.jpg'
       },
       {
         id: '6ebfeaed-607f-490a-8875-a4add597cc8a',
@@ -113,7 +113,7 @@ const app = createApp({
         priceCents: 2000,
         durationMinutes: 15,
         durationLabel: '15min',
-        image: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=300&auto=format&fit=crop&q=80'
+        image: 'assets/services/hidratacao.jpg'
       },
       {
         id: '5caac1e8-fbca-4b97-a107-13782cad4b40',
@@ -121,7 +121,7 @@ const app = createApp({
         priceCents: 2000,
         durationMinutes: 15,
         durationLabel: '15min',
-        image: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=300&auto=format&fit=crop&q=80'
+        image: 'assets/services/alisamento.jpg'
       },
       {
         id: 'a888baaf-c1b6-4161-aa50-d586b81ce2c8',
@@ -129,7 +129,7 @@ const app = createApp({
         priceCents: 2000,
         durationMinutes: 30,
         durationLabel: '30min',
-        image: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=300&auto=format&fit=crop&q=80'
+        image: 'assets/services/pigmentacao.jpg'
       },
       {
         id: 'af31c8c8-b37a-4164-81c7-85aeeaad0f72',
@@ -137,7 +137,7 @@ const app = createApp({
         priceCents: 3000,
         durationMinutes: 30,
         durationLabel: '30min',
-        image: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=300&auto=format&fit=crop&q=80'
+        image: 'assets/services/corte.jpg'
       },
       {
         id: 'b0243eb9-2acc-4111-bf3c-3bd0df6aa9bb',
@@ -153,7 +153,7 @@ const app = createApp({
         priceCents: 3500,
         durationMinutes: 30,
         durationLabel: '30min',
-        image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=300&auto=format&fit=crop&q=80'
+        image: 'assets/services/corte_sobrancelha.jpg'
       },
       {
         id: 'adfdc695-da63-4b35-98d0-d704ba3d5c76',
@@ -161,7 +161,7 @@ const app = createApp({
         priceCents: 13000,
         durationMinutes: 60,
         durationLabel: '1hr',
-        image: 'https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?w=300&auto=format&fit=crop&q=80'
+        image: 'assets/services/platinado_corte.jpg'
       },
       {
         id: 'c94cfaa6-b11d-4665-a2d0-057e7da7d0bc',
@@ -177,7 +177,7 @@ const app = createApp({
         priceCents: 5000,
         durationMinutes: 60,
         durationLabel: '1hr',
-        image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=300&auto=format&fit=crop&q=80'
+        image: 'assets/services/corte_barba.jpg'
       },
       {
         id: '68c71d3d-7a24-4a3d-8576-25c7d56ccff4',
@@ -185,7 +185,7 @@ const app = createApp({
         priceCents: 2500,
         durationMinutes: 30,
         durationLabel: '30min',
-        image: './assets/services/barba.jpg'
+        image: 'assets/services/barba.jpg'
       },
       {
         id: 'e982fc13-3932-447e-b777-e5f66ea065df',
