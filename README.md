@@ -98,7 +98,6 @@ Para impedir agendamentos duplicados ou horarios sobrepostos por multiplos usuar
 
 ### Infraestrutura & Banco
 - **Docker & Docker Compose**
-- **Adminer** (Interface web para gestao do PostgreSQL)
 
 ---
 
@@ -158,11 +157,10 @@ Execute o comando na raiz do projeto:
 docker compose up -d
 ```
 
-O Docker construira a imagem do backend e subira os 4 servicos:
+O Docker construira a imagem do backend e subira os 3 servicos:
 - `barber_man_postgres` (Banco de dados)
 - `barber_man_backend` (API REST)
 - `barber_man_frontend` (Interface Web)
-- `barber_man_adminer` (Painel Web do Banco)
 
 ### 4. Acessar os Servicos
 
@@ -170,7 +168,6 @@ O Docker construira a imagem do backend e subira os 4 servicos:
 | :--- | :--- | :--- |
 | **Frontend (App Web)** | `http://localhost:3000` | Acesso publico |
 | **Backend (API REST)** | `http://localhost:8081` | Endpoints `/appointments`, `/barbers`, etc. |
-| **Adminer (Banco Web)** | `http://localhost:8080` | Sistema: `PostgreSQL`, Servidor: `postgres_db`, Usuario e Senha definidos no `.env` |
 
 ### 5. Parar os Containers
 Para encerrar os servicos:
@@ -220,7 +217,6 @@ DB_PASSWORD=sua_senha_segura
 DB_PORT=5432
 
 # Portas de Acesso
-ADMINER_PORT=8080
 FRONTEND_PORT=3000
 API_PORT=8081
 ```
