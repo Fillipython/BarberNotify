@@ -29,8 +29,8 @@ public class AppointmentController {
 
     @GetMapping
     public ResponseEntity<List<AppointmentResponseDto>> listByClient(
-            @RequestParam(required = false) UUID clientId,
-            @RequestParam(required = false) String phone) {
+            @RequestParam(value = "clientId", required = false) UUID clientId,
+            @RequestParam(value = "phone", required = false) String phone) {
         if (clientId != null) {
             return ResponseEntity.ok(appointmentService.findByClientId(clientId));
         }
@@ -42,14 +42,14 @@ public class AppointmentController {
 
     @GetMapping("/slots")
     public ResponseEntity<List<TimeSlotDto>> getAvailableSlots(
-            @RequestParam UUID barberId,
-            @RequestParam String date,
-            @RequestParam(defaultValue = "30") int duration) {
+            @RequestParam("barberId") UUID barberId,
+            @RequestParam("date") String date,
+            @RequestParam(value = "duration", defaultValue = "30") int duration) {
         return ResponseEntity.ok(appointmentService.getAvailableSlots(barberId, date, duration));
     }
 
     @PatchMapping("/{id}/cancel")
-    public ResponseEntity<Void> cancelAppointment(@PathVariable UUID id) {
+    public ResponseEntity<Void> cancelAppointment(@PathVariable("id") UUID id) {
         appointmentService.cancelAppointment(id);
         return ResponseEntity.noContent().build();
     }

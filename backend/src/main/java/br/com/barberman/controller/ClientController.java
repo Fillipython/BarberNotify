@@ -17,8 +17,18 @@ public class ClientController {
         this.clientService = clientService;
     }
 
+    @GetMapping
+    public ResponseEntity<ClientResponseDto> getByPhone(@RequestParam(value = "phone", required = false) String phone) {
+        if (phone == null || phone.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        return clientService.findByPhone(phone)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/search")
-    public ResponseEntity<ClientResponseDto> searchByPhone(@RequestParam String phone) {
+    public ResponseEntity<ClientResponseDto> searchByPhone(@RequestParam("phone") String phone) {
         return clientService.findByPhone(phone)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());

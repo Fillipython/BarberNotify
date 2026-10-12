@@ -1,5 +1,11 @@
 const { createApp, ref, computed, onMounted } = Vue;
 
+const API_BASE = window.API_BASE_URL || (
+  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:8081/api'
+    : '/api'
+);
+
 const app = createApp({
   setup() {
     // Estado do Cliente
@@ -261,7 +267,7 @@ const app = createApp({
       if (!selectedBarber.value?.id || !selectedDay.value) return;
       try {
         const duration = totalDurationMinutes.value > 0 ? totalDurationMinutes.value : 30;
-        const res = await fetch(`http://localhost:8081/api/appointments/slots?barberId=${selectedBarber.value.id}&date=${selectedDay.value}&duration=${duration}`);
+        const res = await fetch(`${API_BASE}/appointments/slots?barberId=${selectedBarber.value.id}&date=${selectedDay.value}&duration=${duration}`);
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {
@@ -430,7 +436,7 @@ const app = createApp({
 
       // Procura se o cliente ja possui cadastro no backend PostgreSQL
       try {
-        const checkRes = await fetch(`http://localhost:8081/api/clients?phone=${raw}`);
+        const checkRes = await fetch(`${API_BASE}/clients/search?phone=${raw}`);
         if (checkRes.ok) {
           const clientData = await checkRes.json();
           if (clientData && clientData.id) {
@@ -464,7 +470,7 @@ const app = createApp({
 
       // Cadastra no backend PostgreSQL e obtem o UUID real
       try {
-        const clientRes = await fetch('http://localhost:8081/api/clients', {
+        const clientRes = await fetch(`${API_BASE}/clients`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -593,7 +599,7 @@ const app = createApp({
 
       // 1. Garante que o cliente esta cadastrado no backend para obter UUID real
       try {
-        const clientRes = await fetch('http://localhost:8081/api/clients', {
+        const clientRes = await fetch(`${API_BASE}/clients`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -619,7 +625,7 @@ const app = createApp({
 
       // 2. Envio da reserva para a API (com controle atomico e lock pessimista no PostgreSQL)
       try {
-        const aptRes = await fetch('http://localhost:8081/api/appointments', {
+        const aptRes = await fetch(`${API_BASE}/appointments`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -690,7 +696,15 @@ const app = createApp({
       selectedTime.value = '';
     };
 
-    const cancelAppointment = (appointmentId) => {
+    const cancelAppointment = async (appointmentId) => {
+      try {
+        await fetch(`${API_BASE}/appointments/${appointmentId}/cancel`, {
+          method: 'PATCH'
+        });
+      } catch (e) {
+        console.warn('Erro ao cancelar agendamento na API:', e);
+      }
+
       const list = allAppointments.value.map(a => {
         if (a.id === appointmentId) {
           return { ...a, status: 'CANCELADO' };
@@ -699,6 +713,8 @@ const app = createApp({
       });
       allAppointments.value = list;
       localStorage.setItem('barber_man_appointments', JSON.stringify(list));
+      syncChannel?.postMessage('appointment_changed');
+      fetchSlots();
       showToast('Agendamento cancelado com sucesso.');
     };
 
@@ -738,7 +754,7 @@ const app = createApp({
       }
 
       // Sincroniza lista de barbeiros com a API do backend
-      fetch('http://localhost:8081/api/barbers')
+      fetch(`${API_BASE}/barbers`)
         .then(r => r.json())
         .then(data => {
           if (Array.isArray(data) && data.length > 0) {
@@ -756,7 +772,7 @@ const app = createApp({
         .catch(e => console.warn('Usando barbeiros locais:', e));
 
       // Sincroniza UUIDs dos servicos com o backend preservando a lista e fotos
-      fetch('http://localhost:8081/api/services')
+      fetch(`${API_BASE}/services`)
         .then(r => r.json())
         .then(data => {
           if (Array.isArray(data) && data.length > 0) {
