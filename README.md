@@ -157,10 +157,11 @@ Execute o comando na raiz do projeto:
 docker compose up -d
 ```
 
-O Docker construira a imagem do backend e subira os 3 servicos de producao:
+O Docker construira a imagem do backend e subira os 4 servicos de producao:
 - `barber_man_postgres` (Banco de dados)
 - `barber_man_backend` (API REST Spring Boot)
 - `barber_man_frontend` (Gateway Nginx com SSL, Rate Limiting e Cache)
+- `barber_man_portainer` (Painel Web de gestao e parada de containers)
 
 ### 4. Acessar os Servicos
 
@@ -168,6 +169,7 @@ O Docker construira a imagem do backend e subira os 3 servicos de producao:
 | :--- | :--- | :--- |
 | **App Web & API Gateway (Nginx)** | `http://localhost` ou `https://localhost` | Portas 80 e 443 (SSL, Rate Limit e rotas `/` e `/api/`) |
 | **Backend API (Direto)** | `http://localhost:8081` | Porta local da API Spring Boot |
+| **Portainer (Gestao de Containers)** | `https://localhost:9443` | Painel Web seguro para iniciar/parar/reiniciar containers e ver logs |
 
 ### 5. Parar os Containers
 Para encerrar os servicos:
@@ -220,6 +222,7 @@ DB_PORT=5432
 HTTP_PORT=80
 HTTPS_PORT=443
 API_PORT=8081
+PORTAINER_PORT=9443
 ```
 
 ---

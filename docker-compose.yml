@@ -62,8 +62,23 @@ services:
     networks:
       - barber_man_network
 
+  # Gerenciamento e Monitoramento de Containers - Portainer CE
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: barber_man_portainer
+    restart: unless-stopped
+    ports:
+      - "${PORTAINER_PORT:-9443}:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - barber_man_network
+
 volumes:
   pgdata:
+    driver: local
+  portainer_data:
     driver: local
 
 networks:
