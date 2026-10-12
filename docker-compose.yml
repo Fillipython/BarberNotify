@@ -21,15 +21,22 @@ services:
     networks:
       - barber_man_network
 
-  # Aplicacao Web Frontend - Vue 3
+  # Gateway / Reverse Proxy & Frontend - Nginx (SSL, Rate Limiting, Cache, IP Blocking)
   frontend:
     image: nginx:alpine
     container_name: barber_man_frontend
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${FRONTEND_PORT:-3000}:80"
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
     volumes:
       - ./frontend:/usr/share/nginx/html:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/blocked_ips.conf:/etc/nginx/blocked_ips.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
     networks:
       - barber_man_network
 

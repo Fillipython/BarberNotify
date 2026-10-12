@@ -157,17 +157,17 @@ Execute o comando na raiz do projeto:
 docker compose up -d
 ```
 
-O Docker construira a imagem do backend e subira os 3 servicos:
+O Docker construira a imagem do backend e subira os 3 servicos de producao:
 - `barber_man_postgres` (Banco de dados)
-- `barber_man_backend` (API REST)
-- `barber_man_frontend` (Interface Web)
+- `barber_man_backend` (API REST Spring Boot)
+- `barber_man_frontend` (Gateway Nginx com SSL, Rate Limiting e Cache)
 
 ### 4. Acessar os Servicos
 
 | Servico | URL | Credenciais / Notas |
 | :--- | :--- | :--- |
-| **Frontend (App Web)** | `http://localhost:3000` | Acesso publico |
-| **Backend (API REST)** | `http://localhost:8081` | Endpoints `/appointments`, `/barbers`, etc. |
+| **App Web & API Gateway (Nginx)** | `http://localhost` ou `https://localhost` | Portas 80 e 443 (SSL, Rate Limit e rotas `/` e `/api/`) |
+| **Backend API (Direto)** | `http://localhost:8081` | Porta local da API Spring Boot |
 
 ### 5. Parar os Containers
 Para encerrar os servicos:
@@ -217,6 +217,36 @@ DB_PASSWORD=sua_senha_segura
 DB_PORT=5432
 
 # Portas de Acesso
-FRONTEND_PORT=3000
+HTTP_PORT=80
+HTTPS_PORT=443
 API_PORT=8081
 ```
+
+---
+
+## Seguranca, Nginx & Reverse Proxy
+
+O Nginx atua como porta de entrada unificada para a aplicacao:
+
+1. **Rate Limiting por IP**:
+   - **API (`/api/`)**: Limite de 10 requisicoes/segundo com burst de 20 (`limit_req zone=api_limit burst=20 nodelay`).
+   - **Frontend Estatico (`/`)**: Limite de 30 requisicoes/segundo com burst de 50.
+   - Retorna status **HTTP 429 (Too Many Requests)** se ultrapassado.
+2. **Bloqueio de IPs (Blacklist)**:
+   - Gerenciado no arquivo `nginx/blocked_ips.conf`. Para bloquear IPs ou redes suspeitas, adicione `deny <IP>;` e reinicie ou recarregue o Nginx (`docker exec barber_man_frontend nginx -s reload`). Retorna **HTTP 403 (Forbidden)**.
+3. **Certificados SSL / HTTPS (Porta 443)**:
+   - Certificados montados em `nginx/ssl/fullchain.pem` e `nginx/ssl/privkey.pem`.
+   - Compativel com **Certbot / Let's Encrypt** atraves do desafio ACME em `/.well-known/acme-challenge/`.
+   - Headers HSTS, X-Frame-Options, X-Content-Type-Options e TLSv1.2/TLSv1.3 ativos.
+4. **Roteamento de Portas e Paths**:
+   - `http://seu-dominio/` e `https://seu-dominio/` servem o frontend estatico com cache de 7 dias para assets.
+   - `http://seu-dominio/api/` e `https://seu-dominio/api/` encaminham via proxy reverso diretamente para o backend Spring Boot na porta interna 8081.
+
+---
+
+## Pipeline CI/CD (GitHub Actions)
+
+Configurada em `.github/workflows/ci.yml`:
+- **Job de Testes & Build**: Roda em ambiente Ubuntu com JDK 21 LTS, executa os 57 testes automatizados e gera o `.jar` final.
+- **Job de Docker & Seguranca**: Valida que arquivos sensiveis (`.env`) nao estao expostos no Git, valida a sintaxe dos arquivos do Nginx e a configuracao do Docker Compose.
+

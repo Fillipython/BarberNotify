@@ -4,6 +4,15 @@
 # Diretórios de dados persistentes do Docker
 .docker_data/
 
+# Certificados SSL e Chaves Privadas (segurança absoluta contra vazamento)
+nginx/ssl/*.pem
+nginx/ssl/*.key
+nginx/ssl/*.crt
+nginx/ssl/*.p12
+nginx/ssl/*.pfx
+!nginx/ssl/.gitkeep
+nginx/certbot/
+
 # Logs e arquivos do sistema
 *.log
 .DS_Store
