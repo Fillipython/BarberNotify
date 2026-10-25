@@ -1,9 +1,10 @@
 const { createApp, ref, computed, onMounted } = Vue;
 
+const isSubpath = window.location.pathname.startsWith('/BarberNotify');
 const API_BASE = window.API_BASE_URL || (
   window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:8081/api'
-    : '/api'
+    ? (isSubpath ? '/BarberNotify/api' : 'http://localhost:8081/api')
+    : (isSubpath ? '/BarberNotify/api' : '/api')
 );
 
 const app = createApp({
