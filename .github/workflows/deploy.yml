@@ -16,6 +16,8 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           port: 22
+          timeout: 60s
+          command_timeout: 15m
           script: |
             echo "Iniciando deploy automático do BarberNotify..."
             # Encontra e acessa o diretório do projeto
@@ -34,8 +36,15 @@ jobs:
             echo "Baixando atualizações do GitHub..."
             git pull origin main
 
-            echo "Atualizando containers com Docker Compose..."
-            docker compose up -d --build backend evolution_api
-            docker exec barber_man_frontend nginx -s reload || docker compose restart frontend
+            DOCKER_CMD="docker compose"
+            if ! docker ps >/dev/null 2>&1; then
+              if sudo docker ps >/dev/null 2>&1; then
+                DOCKER_CMD="sudo docker compose"
+              fi
+            fi
+
+            echo "Atualizando containers com $DOCKER_CMD..."
+            $DOCKER_CMD up -d --build backend evolution_api
+            $DOCKER_CMD restart frontend || docker exec barber_man_frontend nginx -s reload || sudo docker exec barber_man_frontend nginx -s reload
 
             echo "Deploy concluído com sucesso!"
