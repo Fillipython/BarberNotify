@@ -34,7 +34,8 @@ jobs:
             echo "Baixando atualizações do GitHub..."
             git pull origin main
 
-            echo "Recarregando Nginx no container frontend..."
+            echo "Atualizando containers com Docker Compose..."
+            docker compose up -d --build backend evolution_api
             docker exec barber_man_frontend nginx -s reload || docker compose restart frontend
 
             echo "Deploy concluído com sucesso!"

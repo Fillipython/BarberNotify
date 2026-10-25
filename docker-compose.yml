@@ -56,6 +56,12 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       API_PORT: 8081
+      WHATSAPP_ENABLED: ${WHATSAPP_ENABLED:-true}
+      WHATSAPP_API_URL: http://evolution_api:8080
+      WHATSAPP_API_KEY: ${WHATSAPP_API_KEY:-barberman_secret_key_123}
+      WHATSAPP_INSTANCE: ${WHATSAPP_INSTANCE:-barber_man}
+      WHATSAPP_SENDER_PHONE: ${WHATSAPP_SENDER_PHONE:-}
+      WHATSAPP_NOTIFY_OWNER: ${WHATSAPP_NOTIFY_OWNER:-true}
     depends_on:
       postgres_db:
         condition: service_healthy
@@ -75,10 +81,29 @@ services:
     networks:
       - barber_man_network
 
+  # WhatsApp Gateway - Evolution API v2 (Open Source)
+  evolution_api:
+    image: atendai/evolution-api:v2.1.2
+    container_name: barber_man_evolution_api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${EVOLUTION_PORT:-8080}:8080"
+    environment:
+      SERVER_URL: http://localhost:${EVOLUTION_PORT:-8080}
+      AUTHENTICATION_API_KEY: ${WHATSAPP_API_KEY:-barberman_secret_key_123}
+      DATABASE_ENABLED: "false"
+      WEBHOOK_GLOBAL_ENABLED: "false"
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks:
+      - barber_man_network
+
 volumes:
   pgdata:
     driver: local
   portainer_data:
+    driver: local
+  evolution_instances:
     driver: local
 
 networks:

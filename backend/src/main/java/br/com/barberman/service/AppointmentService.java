@@ -6,6 +6,7 @@ import br.com.barberman.dto.TimeSlotDto;
 import br.com.barberman.model.*;
 import br.com.barberman.repository.AppointmentRepository;
 import br.com.barberman.repository.NotificationLogRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ public class AppointmentService {
     private final BarberService barberService;
     private final ServiceItemService serviceItemService;
     private final NotificationLogRepository notificationLogRepository;
+    private final WhatsAppNotificationService whatsAppNotificationService;
 
     public AppointmentService(
             AppointmentRepository appointmentRepository,
@@ -32,11 +34,23 @@ public class AppointmentService {
             BarberService barberService,
             ServiceItemService serviceItemService,
             NotificationLogRepository notificationLogRepository) {
+        this(appointmentRepository, clientService, barberService, serviceItemService, notificationLogRepository, null);
+    }
+
+    @Autowired
+    public AppointmentService(
+            AppointmentRepository appointmentRepository,
+            ClientService clientService,
+            BarberService barberService,
+            ServiceItemService serviceItemService,
+            NotificationLogRepository notificationLogRepository,
+            @Autowired(required = false) WhatsAppNotificationService whatsAppNotificationService) {
         this.appointmentRepository = appointmentRepository;
         this.clientService = clientService;
         this.barberService = barberService;
         this.serviceItemService = serviceItemService;
         this.notificationLogRepository = notificationLogRepository;
+        this.whatsAppNotificationService = whatsAppNotificationService;
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -112,6 +126,10 @@ public class AppointmentService {
                     .message(welcomeMsg)
                     .status("SENT")
                     .build());
+
+            if (whatsAppNotificationService != null) {
+                whatsAppNotificationService.sendAppointmentConfirmation(saved);
+            }
         }
 
         if (client.getEmail() != null && !client.getEmail().isBlank()) {
