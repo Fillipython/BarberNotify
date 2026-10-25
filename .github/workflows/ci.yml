@@ -76,6 +76,7 @@ jobs:
             -out nginx/ssl/fullchain.pem \
             -subj "/CN=ci-test"
           docker run --rm \
+            --add-host backend:127.0.0.1 \
             -v ${{ github.workspace }}/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
             -v ${{ github.workspace }}/nginx/conf.d:/etc/nginx/conf.d:ro \
             -v ${{ github.workspace }}/nginx/blocked_ips.conf:/etc/nginx/blocked_ips.conf:ro \
