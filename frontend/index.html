@@ -313,6 +313,13 @@
                 </li>
               </ul>
             </div>
+            <div class="review-item total">
+              <span class="review-label">Total a pagar</span>
+              <strong class="review-total-price">R$ {{ (totalPriceCents / 100).toFixed(2).replace('.', ',') }}</strong>
+            </div>
+          </div>
+        </div>
+
         <!-- Etapa 5: Confirmacao Concluida no Chat (sem abrir modal) -->
         <div v-if="currentStage === 5" class="stage-section fade-in">
           <div class="chat-bubble">

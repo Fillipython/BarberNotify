@@ -30,6 +30,10 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   background-color: var(--bg-primary);
   color: var(--text-main);
@@ -44,6 +48,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
 
 [v-cloak] {
@@ -848,6 +853,8 @@ body {
 .app-footer {
   position: fixed;
   bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
   width: 100%;
   max-width: 480px;
   background: linear-gradient(180deg, rgba(7, 9, 14, 0.4) 0%, rgba(7, 9, 14, 0.98) 35%);
@@ -1110,3 +1117,482 @@ body {
 .fade-in {
   animation: slideBubble 0.25s ease-out;
 }
+
+/* Scrollbar Customizada para Desktop */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: #1e283d;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2a3b5c;
+}
+
+/* ==========================================================================
+   Responsividade: Telas Medias / Tablets / Laptops / Desktops (PC)
+   ========================================================================== */
+
+/* 1. Telas a partir de 600px (Phablets / Tablets Pequenos) */
+@media (min-width: 600px) {
+  #app {
+    max-width: 580px;
+  }
+  .app-footer {
+    max-width: 580px;
+  }
+  .time-slots-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* 2. Tablets, iPad e Notebooks Compactos (min-width: 768px) */
+@media (min-width: 768px) {
+  body {
+    padding: 0 16px;
+  }
+
+  #app {
+    max-width: 840px;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 70px rgba(0, 0, 0, 0.85), 0 0 35px rgba(30, 92, 179, 0.12);
+  }
+
+  .app-header {
+    padding: 16px 28px;
+  }
+
+  .brand-logo {
+    width: 48px;
+    height: 48px;
+  }
+
+  .brand-title {
+    font-size: 19px;
+  }
+
+  .btn-top-appointments {
+    padding: 9px 16px;
+    font-size: 12px;
+  }
+
+  .chat-container {
+    padding: 24px 32px;
+    gap: 20px;
+  }
+
+  /* Baloes de Mensagem */
+  .chat-bubble {
+    font-size: 15.5px;
+    line-height: 1.55;
+    padding: 16px 22px;
+    max-width: 700px;
+    border-radius: 16px;
+  }
+
+  /* Etapas de Cadastro Inicial (Nome, Telefone, E-mail, Notificacao) */
+  .action-card {
+    max-width: 580px;
+    padding: 22px 26px;
+    border-radius: 16px;
+  }
+
+  .notification-actions {
+    max-width: 580px;
+    justify-content: flex-start;
+    gap: 14px;
+  }
+
+  .btn-pill-action {
+    padding: 11px 24px;
+    font-size: 14px;
+  }
+
+  /* Etapa 1: Barbeiros em Grade de 3 Colunas */
+  .barbers-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .barber-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 22px 16px;
+    gap: 12px;
+    border-radius: 16px;
+  }
+
+  .barber-card:hover {
+    transform: translateY(-3px);
+  }
+
+  .barber-avatar-container {
+    width: 76px;
+    height: 76px;
+  }
+
+  .barber-avatar {
+    width: 76px;
+    height: 76px;
+  }
+
+  .barber-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .barber-name {
+    font-size: 16px;
+  }
+
+  .barber-role {
+    font-size: 12px;
+    margin-top: 2px;
+  }
+
+  .barber-bio {
+    font-size: 11.5px;
+    line-height: 1.45;
+    margin-top: 6px;
+  }
+
+  .barber-check {
+    margin-top: 6px;
+  }
+
+  /* Etapa 2: Servicos em Grade Responsiva */
+  .services-carousel-wrapper {
+    margin: 0;
+    padding: 0;
+  }
+
+  .services-carousel {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    overflow-x: visible;
+    scroll-snap-type: none;
+    padding-bottom: 0;
+  }
+
+  .service-card {
+    flex: initial;
+    width: 100%;
+    border-radius: 14px;
+  }
+
+  .service-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.5), 0 0 16px rgba(59, 130, 246, 0.25);
+  }
+
+  .service-image-container {
+    height: 135px;
+  }
+
+  .service-title {
+    font-size: 14px;
+  }
+
+  .carousel-hint {
+    display: none;
+  }
+
+  .selection-summary-card {
+    padding: 16px 22px;
+    border-radius: 14px;
+  }
+
+  /* Etapa 3: Dias e Horarios */
+  .date-carousel-wrapper {
+    margin: 0;
+    padding: 0;
+  }
+
+  .date-carousel {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: #26334d transparent;
+  }
+
+  .date-card {
+    flex: 0 0 74px;
+    height: 90px;
+    border-radius: 14px;
+  }
+
+  .time-slots-grid {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+  }
+
+  .time-slot-btn {
+    font-size: 14px;
+    min-height: 52px;
+  }
+
+  .time-slot-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
+
+  /* Etapa 4: Resumo e Confirmacao */
+  .review-card {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+    padding: 24px 28px;
+    border-radius: 16px;
+  }
+
+  .review-item.total {
+    grid-column: 1 / -1;
+    margin-top: 6px;
+  }
+
+  /* Etapa 5: Sucesso */
+  .success-card {
+    max-width: 620px;
+    padding: 24px 28px;
+    border-radius: 16px;
+  }
+
+  .bottom-spacer {
+    height: 110px;
+  }
+
+  /* Barra Inferior Fixa */
+  .app-footer {
+    max-width: 840px;
+    padding: 18px 32px 24px 32px;
+    background: linear-gradient(180deg, rgba(7, 9, 14, 0) 0%, rgba(7, 9, 14, 0.96) 35%);
+  }
+
+  .btn-footer-primary {
+    max-width: 440px;
+    margin: 0 auto;
+    height: 52px;
+    font-size: 16px;
+    border-radius: 14px;
+  }
+
+  /* Modais */
+  .modal-card {
+    max-width: 580px;
+    border-radius: 20px;
+  }
+
+  .modal-header {
+    padding: 18px 24px;
+  }
+
+  .modal-body {
+    padding: 20px 24px;
+  }
+}
+
+/* 3. Laptops, Monitores Desktop PC (min-width: 1024px) */
+@media (min-width: 1024px) {
+  #app {
+    max-width: 980px;
+    box-shadow: 0 0 90px rgba(0, 0, 0, 0.9), 0 0 45px rgba(30, 92, 179, 0.14);
+  }
+
+  .app-header {
+    padding: 18px 36px;
+  }
+
+  .brand-logo {
+    width: 50px;
+    height: 50px;
+  }
+
+  .brand-title {
+    font-size: 20px;
+  }
+
+  .chat-container {
+    padding: 28px 40px;
+    gap: 24px;
+  }
+
+  .chat-bubble {
+    font-size: 16px;
+    padding: 18px 26px;
+    max-width: 760px;
+    border-radius: 18px;
+  }
+
+  .action-card {
+    max-width: 640px;
+    padding: 26px 32px;
+    border-radius: 18px;
+  }
+
+  .form-input {
+    font-size: 15.5px;
+    padding: 13px 16px;
+  }
+
+  .btn-primary-action {
+    font-size: 15px;
+    padding: 13px 22px;
+  }
+
+  /* Barbeiros */
+  .barbers-grid {
+    gap: 20px;
+  }
+
+  .barber-card {
+    padding: 26px 20px;
+    gap: 14px;
+  }
+
+  .barber-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.6), 0 0 22px rgba(59, 130, 246, 0.25);
+  }
+
+  .barber-avatar-container {
+    width: 82px;
+    height: 82px;
+  }
+
+  .barber-avatar {
+    width: 82px;
+    height: 82px;
+  }
+
+  .barber-name {
+    font-size: 17px;
+  }
+
+  .barber-role {
+    font-size: 12.5px;
+  }
+
+  .barber-bio {
+    font-size: 12px;
+  }
+
+  /* Servicos em 4 Colunas no PC */
+  .services-carousel {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .service-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.6), 0 0 20px rgba(59, 130, 246, 0.3);
+  }
+
+  .service-image-container {
+    height: 140px;
+  }
+
+  .service-title {
+    font-size: 14.5px;
+  }
+
+  /* Dias e Horarios */
+  .date-carousel {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 8px;
+    overflow-x: visible;
+  }
+
+  .date-card {
+    flex: initial;
+    width: 100%;
+    height: 92px;
+  }
+
+  .date-card:hover:not(.disabled) {
+    transform: translateY(-2px);
+  }
+
+  .time-slots-grid {
+    grid-template-columns: repeat(8, 1fr);
+    gap: 10px;
+  }
+
+  .time-slot-btn {
+    font-size: 14.5px;
+    min-height: 52px;
+  }
+
+  /* Confirmacao e Resumo */
+  .review-card {
+    padding: 26px 32px;
+    gap: 20px 28px;
+  }
+
+  .review-label {
+    font-size: 12px;
+  }
+
+  .review-value {
+    font-size: 15px;
+  }
+
+  .review-total-price {
+    font-size: 20px;
+  }
+
+  .success-card {
+    max-width: 660px;
+    padding: 28px 32px;
+  }
+
+  /* Footer Fixo */
+  .app-footer {
+    max-width: 980px;
+    padding: 20px 40px 26px 40px;
+  }
+
+  .btn-footer-primary {
+    max-width: 480px;
+    height: 54px;
+    font-size: 16.5px;
+  }
+
+  /* Modal */
+  .modal-card {
+    max-width: 620px;
+  }
+}
+
+/* 4. Monitores Grandes, Full HD, 2K e Ultrawide (min-width: 1440px) */
+@media (min-width: 1440px) {
+  #app {
+    max-width: 1060px;
+  }
+
+  .app-footer {
+    max-width: 1060px;
+  }
+
+  .chat-container {
+    padding: 32px 48px;
+  }
+
+  .app-header {
+    padding: 20px 48px;
+  }
+}
+
