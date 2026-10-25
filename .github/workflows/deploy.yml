@@ -1,0 +1,40 @@
+name: Deploy Automático - Oracle Cloud
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    name: Deploy na VPS Oracle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Executar Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          script: |
+            echo "Iniciando deploy automático do BarberNotify..."
+            # Encontra e acessa o diretório do projeto
+            if [ -d "$HOME/BarberNotify" ]; then
+              cd "$HOME/BarberNotify"
+            elif [ -d "/home/ubuntu/BarberNotify" ]; then
+              cd "/home/ubuntu/BarberNotify"
+            elif [ -d "/home/opc/BarberNotify" ]; then
+              cd "/home/opc/BarberNotify"
+            elif [ -d "/var/www/BarberNotify" ]; then
+              cd "/var/www/BarberNotify"
+            else
+              cd "$(find /home /var/www -maxdepth 3 -name BarberNotify 2>/dev/null | head -n 1)"
+            fi
+
+            echo "Baixando atualizações do GitHub..."
+            git pull origin main
+
+            echo "Recarregando Nginx no container frontend..."
+            docker exec barber_man_frontend nginx -s reload || docker compose restart frontend
+
+            echo "Deploy concluído com sucesso!"
