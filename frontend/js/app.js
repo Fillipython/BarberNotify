@@ -26,7 +26,7 @@ function resolveBarberAvatar(rawUrl, barberName, fallbackUrl) {
   if (rawUrl === 'REMOVED' || rawUrl === 'NONE') {
     return buildInitialsSvg(barberName);
   }
-  if (!rawUrl) {
+  if (!rawUrl || String(rawUrl).includes('1534528741775')) {
     return fallbackUrl || buildInitialsSvg(barberName);
   }
   if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://') || rawUrl.startsWith('data:')) {
