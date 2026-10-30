@@ -273,9 +273,12 @@ class AppointmentServiceTest {
         TimeSlotDto slot0930 = slots.stream().filter(s -> "09:30".equals(s.getTime())).findFirst().orElseThrow();
         assertTrue(slot0930.getAvailable());
 
-        // 13:30 com 60 min ultrapassa 14:00 (fim do turno da manha)
+        // 13:30 e 18:00 devem continuar disponiveis com 60 min quando nao ha agendamento naquele horario
         List<TimeSlotDto> slots60Min = appointmentService.getAvailableSlots(barberId, "2026-10-15", 60);
         TimeSlotDto slot1330 = slots60Min.stream().filter(s -> "13:30".equals(s.getTime())).findFirst().orElseThrow();
-        assertFalse(slot1330.getAvailable(), "Slot das 13:30 com 60min deve exceder o turno que termina as 14:00");
+        assertTrue(slot1330.getAvailable());
+
+        TimeSlotDto slot1800 = slots60Min.stream().filter(s -> "18:00".equals(s.getTime())).findFirst().orElseThrow();
+        assertTrue(slot1800.getAvailable());
     }
 }

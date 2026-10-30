@@ -51,6 +51,19 @@ public class ClientService {
                 .orElseThrow(() -> new IllegalArgumentException("Cliente nao encontrado com o ID informado"));
     }
 
+    @Transactional
+    public Client findOrCreateSystemClient() {
+        return clientRepository.findByPhone("11900000000")
+                .orElseGet(() -> clientRepository.save(
+                        Client.builder()
+                                .name("Bloqueio de Agenda")
+                                .phone("11900000000")
+                                .email("agenda@barberman.com.br")
+                                .notificationsEnabled(false)
+                                .build()
+                ));
+    }
+
     private String cleanPhone(String phone) {
         if (phone == null) return "";
         return phone.replaceAll("\\D", "");

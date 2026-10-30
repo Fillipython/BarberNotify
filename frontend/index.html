@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=2">
+  <link rel="stylesheet" href="css/style.css?v=3">
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 </head>
 <body>
@@ -265,6 +265,9 @@
 
           <!-- Grade de Horarios Disponiveis (3 colunas identico a referencia) -->
           <div class="time-slots-container">
+            <div v-if="isSelectedDayClosed" style="margin-bottom: 12px; padding: 12px 14px; border-radius: 10px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); color: #fca5a5; font-size: 0.85rem; font-weight: 600; text-align: center;">
+              {{ dayClosedMessage }}
+            </div>
             <div class="time-slots-grid">
               <button 
                 v-for="slot in availableTimeSlots" 
@@ -408,6 +411,6 @@
     </div>
   </div>
 
-  <script src="js/app.js"></script>
+  <script src="js/app.js?v=3"></script>
 </body>
 </html>

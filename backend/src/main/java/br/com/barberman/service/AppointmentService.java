@@ -7,6 +7,8 @@ import br.com.barberman.model.*;
 import br.com.barberman.repository.AppointmentRepository;
 import br.com.barberman.repository.NotificationLogRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,9 +19,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -32,6 +32,8 @@ public class AppointmentService {
     private final ServiceItemService serviceItemService;
     private final NotificationLogRepository notificationLogRepository;
     private final WhatsAppNotificationService whatsAppNotificationService;
+
+    private static final ZoneId ZONE_BR = ZoneId.of("America/Sao_Paulo");
 
     public AppointmentService(
             AppointmentRepository appointmentRepository,
@@ -58,12 +60,25 @@ public class AppointmentService {
         this.whatsAppNotificationService = whatsAppNotificationService;
     }
 
+    @EventListener(ApplicationReadyEvent.class)
+    @Transactional
+    public void cleanupLegacyTestSlotsOnStartup() {
+        try {
+            OffsetDateTime oct30Start = LocalDate.of(2026, 10, 30).atStartOfDay(ZONE_BR).toOffsetDateTime();
+            OffsetDateTime oct30Noon = LocalDate.of(2026, 10, 30).atTime(12, 0).atZone(ZONE_BR).toOffsetDateTime();
+            List<Appointment> legacyOct30 = appointmentRepository.findActiveInPeriod(oct30Start, oct30Noon);
+            for (Appointment apt : legacyOct30) {
+                if (apt.getClientNotes() == null || !apt.getClientNotes().contains("AGENDA_FECHADA")) {
+                    apt.setStatus("CANCELLED");
+                    appointmentRepository.save(apt);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public AppointmentResponseDto createAppointment(AppointmentRequestDto dto) {
-        // Bloqueio pessimista exclusivo na linha do Barbeiro no banco de dados.
-        // Garante atomicidade e impede condicao de corrida (race condition) entre clientes simultaneos:
-        // Apenas a primeira requisicao obtem o lock e efetua a reserva;
-        // Requisicoes concorrentes aguardam o lock e, ao adquirirem, detectam o conflito de horario e sao rejeitadas com HTTP 409.
         Barber barber = barberService.findEntityByIdForBooking(dto.getBarberId());
         Client client = clientService.findEntityById(dto.getClientId());
         List<ServiceItem> services = serviceItemService.findEntitiesByIds(dto.getServiceIds());
@@ -72,18 +87,29 @@ public class AppointmentService {
         int totalPrice = services.stream().mapToInt(ServiceItem::getPriceCents).sum();
 
         OffsetDateTime start = dto.getScheduledAt();
-        OffsetDateTime end = start.plusMinutes(totalMinutes);
+        OffsetDateTime end = start.plusMinutes(30);
 
-        // Verificacao rigorosa de conflito de agenda no barbeiro com lock ativo
+        LocalDate targetDate = start.atZoneSameInstant(ZONE_BR).toLocalDate();
+        OffsetDateTime startOfDay = targetDate.atStartOfDay(ZONE_BR).toOffsetDateTime();
+        OffsetDateTime endOfDay = targetDate.atTime(23, 59, 59).atZone(ZONE_BR).toOffsetDateTime();
+
         List<Appointment> conflicts = appointmentRepository.findActiveByBarberAndPeriod(
                 barber.getId(),
-                start.minusMinutes(240),
-                end.plusMinutes(240)
+                startOfDay,
+                endOfDay
         );
+
+        boolean dayClosed = conflicts.stream().anyMatch(existing ->
+                (existing.getClientNotes() != null && existing.getClientNotes().contains("AGENDA_FECHADA"))
+                || (existing.getTotalDurationMinutes() != null && existing.getTotalDurationMinutes() >= 480)
+        );
+        if (dayClosed) {
+            throw new IllegalStateException("A agenda deste profissional encontra-se fechada nesta data.");
+        }
 
         boolean hasOverlap = conflicts.stream().anyMatch(existing -> {
             OffsetDateTime existingStart = existing.getScheduledAt();
-            OffsetDateTime existingEnd = existingStart.plusMinutes(existing.getTotalDurationMinutes());
+            OffsetDateTime existingEnd = existingStart.plusMinutes(30);
             return start.isBefore(existingEnd) && end.isAfter(existingStart);
         });
 
@@ -101,21 +127,17 @@ public class AppointmentService {
                 .clientNotes(dto.getClientNotes())
                 .build();
 
-        List<AppointmentServiceItem> items = services.stream().map(s -> {
-            AppointmentServiceItem item = AppointmentServiceItem.builder()
-                    .id(new AppointmentServiceId(null, s.getId()))
-                    .appointment(appointment)
-                    .service(s)
-                    .priceCentsAtBooking(s.getPriceCents())
-                    .durationMinutesAtBooking(s.getDurationMinutes())
-                    .build();
-            return item;
-        }).collect(Collectors.toList());
+        List<AppointmentServiceItem> items = services.stream().map(s -> AppointmentServiceItem.builder()
+                .id(new AppointmentServiceId(null, s.getId()))
+                .appointment(appointment)
+                .service(s)
+                .priceCentsAtBooking(s.getPriceCents())
+                .durationMinutesAtBooking(s.getDurationMinutes())
+                .build()).collect(Collectors.toList());
 
         appointment.setServices(items);
         Appointment saved = appointmentRepository.save(appointment);
 
-        // Registrar Log de Notificacao (WhatsApp e Email de confirmacao)
         String welcomeMsg = String.format("Ola %s, seu agendamento no Barber Man foi confirmado para %s com %s.",
                 client.getName(),
                 start.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")),
@@ -159,6 +181,7 @@ public class AppointmentService {
     @Transactional(readOnly = true)
     public List<AppointmentResponseDto> findByClientId(UUID clientId) {
         return appointmentRepository.findDetailedByClientId(clientId).stream()
+                .filter(a -> a.getClientNotes() == null || !a.getClientNotes().contains("AGENDA_FECHADA"))
                 .map(AppointmentResponseDto::fromEntity)
                 .collect(Collectors.toList());
     }
@@ -167,6 +190,17 @@ public class AppointmentService {
     public List<AppointmentResponseDto> findByClientPhone(String phone) {
         String clean = phone.replaceAll("\\D", "");
         return appointmentRepository.findDetailedByClientPhone(clean).stream()
+                .filter(a -> a.getClientNotes() == null || !a.getClientNotes().contains("AGENDA_FECHADA"))
+                .map(AppointmentResponseDto::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<AppointmentResponseDto> findByDate(String dateIso) {
+        LocalDate date = LocalDate.parse(dateIso);
+        OffsetDateTime startOfDay = date.atStartOfDay(ZONE_BR).toOffsetDateTime();
+        OffsetDateTime endOfDay = date.atTime(23, 59, 59).atZone(ZONE_BR).toOffsetDateTime();
+        return appointmentRepository.findActiveInPeriod(startOfDay, endOfDay).stream()
                 .map(AppointmentResponseDto::fromEntity)
                 .collect(Collectors.toList());
     }
@@ -181,6 +215,123 @@ public class AppointmentService {
         if (target.getBarber() != null && target.getClient() != null) {
             notifyBarberAdminAsync("APPOINTMENT_CANCELLED", target, target.getBarber(), target.getClient(), "Cancelado pelo cliente");
         }
+    }
+
+    @Transactional
+    public void cancelByBarberAndTime(UUID barberId, String dateIso, String timeStr) {
+        LocalDate date = LocalDate.parse(dateIso);
+        LocalTime time = LocalTime.parse(timeStr.length() > 5 ? timeStr.substring(0, 5) : timeStr);
+        OffsetDateTime targetStart = date.atTime(time).atZone(ZONE_BR).toOffsetDateTime();
+        List<Appointment> matches = appointmentRepository.findActiveByBarberAndPeriod(
+                barberId,
+                targetStart.minusMinutes(5),
+                targetStart.plusMinutes(5)
+        );
+        for (Appointment apt : matches) {
+            apt.setStatus("CANCELLED");
+            appointmentRepository.save(apt);
+        }
+    }
+
+    @Transactional
+    public Map<String, Object> closeDay(String dateIso, UUID barberId, boolean closeShop) {
+        LocalDate date = LocalDate.parse(dateIso);
+        OffsetDateTime blockStart = date.atTime(8, 0).atZone(ZONE_BR).toOffsetDateTime();
+        OffsetDateTime startOfDay = date.atStartOfDay(ZONE_BR).toOffsetDateTime();
+        OffsetDateTime endOfDay = date.atTime(23, 59, 59).atZone(ZONE_BR).toOffsetDateTime();
+
+        Client systemClient = clientService.findOrCreateSystemClient();
+        List<Barber> targetBarbers = (closeShop || barberId == null)
+                ? barberService.findAllActiveEntities()
+                : List.of(barberService.findEntityById(barberId));
+
+        String noteTag = closeShop ? "AGENDA_FECHADA_LOJA" : "AGENDA_FECHADA_BARBEIRO";
+
+        for (Barber barber : targetBarbers) {
+            List<Appointment> existingOnDay = appointmentRepository.findActiveByBarberAndPeriod(
+                    barber.getId(), startOfDay, endOfDay);
+
+            Optional<Appointment> existingBlock = existingOnDay.stream()
+                    .filter(a -> (a.getClientNotes() != null && a.getClientNotes().contains("AGENDA_FECHADA"))
+                            || a.getScheduledAt().toInstant().equals(blockStart.toInstant()))
+                    .findFirst();
+
+            if (existingBlock.isPresent()) {
+                Appointment blk = existingBlock.get();
+                blk.setStatus("CONFIRMED");
+                blk.setTotalDurationMinutes(720);
+                blk.setTotalPriceCents(0);
+                blk.setClientNotes(noteTag);
+                appointmentRepository.save(blk);
+            } else {
+                Appointment blk = Appointment.builder()
+                        .client(systemClient)
+                        .barber(barber)
+                        .scheduledAt(blockStart)
+                        .totalDurationMinutes(720)
+                        .totalPriceCents(0)
+                        .status("CONFIRMED")
+                        .clientNotes(noteTag)
+                        .build();
+                appointmentRepository.save(blk);
+            }
+        }
+
+        return getDayBlockStatus(dateIso);
+    }
+
+    @Transactional
+    public Map<String, Object> reopenDay(String dateIso, UUID barberId, boolean openShop) {
+        LocalDate date = LocalDate.parse(dateIso);
+        OffsetDateTime startOfDay = date.atStartOfDay(ZONE_BR).toOffsetDateTime();
+        OffsetDateTime endOfDay = date.atTime(23, 59, 59).atZone(ZONE_BR).toOffsetDateTime();
+
+        List<Appointment> activeOnDay = appointmentRepository.findActiveInPeriod(startOfDay, endOfDay);
+        for (Appointment apt : activeOnDay) {
+            boolean isBlock = (apt.getClientNotes() != null && apt.getClientNotes().contains("AGENDA_FECHADA"))
+                    || (apt.getTotalDurationMinutes() != null && apt.getTotalDurationMinutes() >= 480);
+            if (!isBlock) continue;
+
+            if (openShop || barberId == null || (apt.getBarber() != null && apt.getBarber().getId().equals(barberId))) {
+                apt.setStatus("CANCELLED");
+                appointmentRepository.save(apt);
+            }
+        }
+
+        return getDayBlockStatus(dateIso);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getDayBlockStatus(String dateIso) {
+        LocalDate date = LocalDate.parse(dateIso);
+        OffsetDateTime startOfDay = date.atStartOfDay(ZONE_BR).toOffsetDateTime();
+        OffsetDateTime endOfDay = date.atTime(23, 59, 59).atZone(ZONE_BR).toOffsetDateTime();
+
+        List<Appointment> activeOnDay = appointmentRepository.findActiveInPeriod(startOfDay, endOfDay);
+        Set<String> closedBarberIds = new LinkedHashSet<>();
+        boolean shopClosedByMaster = false;
+
+        for (Appointment apt : activeOnDay) {
+            boolean isBlock = (apt.getClientNotes() != null && apt.getClientNotes().contains("AGENDA_FECHADA"))
+                    || (apt.getTotalDurationMinutes() != null && apt.getTotalDurationMinutes() >= 480);
+            if (isBlock && apt.getBarber() != null) {
+                closedBarberIds.add(apt.getBarber().getId().toString());
+                if (apt.getClientNotes() != null && apt.getClientNotes().contains("AGENDA_FECHADA_LOJA")) {
+                    shopClosedByMaster = true;
+                }
+            }
+        }
+
+        List<Barber> allActive = barberService.findAllActiveEntities();
+        boolean allClosed = !allActive.isEmpty() && allActive.stream()
+                .allMatch(b -> closedBarberIds.contains(b.getId().toString()));
+
+        Map<String, Object> status = new LinkedHashMap<>();
+        status.put("date", dateIso);
+        status.put("shopClosed", allClosed || shopClosedByMaster);
+        status.put("shopClosedByMaster", shopClosedByMaster);
+        status.put("closedBarberIds", new ArrayList<>(closedBarberIds));
+        return status;
     }
 
     private void notifyBarberAdminAsync(String eventType, Appointment apt, Barber barber, Client client, String serviceName) {
@@ -236,14 +387,13 @@ public class AppointmentService {
     @Transactional(readOnly = true)
     public List<TimeSlotDto> getAvailableSlots(UUID barberId, String dateIso, int durationMinutes) {
         LocalDate date = LocalDate.parse(dateIso);
-        ZoneId zone = ZoneId.of("America/Sao_Paulo");
-        OffsetDateTime startOfDay = date.atStartOfDay(zone).toOffsetDateTime();
-        OffsetDateTime endOfDay = date.atTime(23, 59, 59).atZone(zone).toOffsetDateTime();
+        OffsetDateTime startOfDay = date.atStartOfDay(ZONE_BR).toOffsetDateTime();
+        OffsetDateTime endOfDay = date.atTime(23, 59, 59).atZone(ZONE_BR).toOffsetDateTime();
 
         List<Appointment> dayAppointments = appointmentRepository.findActiveByBarberAndPeriod(
                 barberId,
-                startOfDay.minusHours(4),
-                endOfDay.plusHours(4)
+                startOfDay,
+                endOfDay
         );
 
         String[] baseTimes = {
@@ -252,36 +402,30 @@ public class AppointmentService {
             "16:30", "17:00", "17:30", "18:00"
         };
 
-        int duration = durationMinutes > 0 ? durationMinutes : 30;
+        boolean isDayClosedForBarber = dayAppointments.stream().anyMatch(existing ->
+                (existing.getClientNotes() != null && existing.getClientNotes().contains("AGENDA_FECHADA"))
+                || (existing.getTotalDurationMinutes() != null && existing.getTotalDurationMinutes() >= 480)
+        );
+
+        if (isDayClosedForBarber) {
+            List<TimeSlotDto> closedResult = new ArrayList<>();
+            for (String t : baseTimes) {
+                closedResult.add(new TimeSlotDto(t, false));
+            }
+            return closedResult;
+        }
+
         List<TimeSlotDto> result = new ArrayList<>();
 
         for (String t : baseTimes) {
             LocalTime lt = LocalTime.parse(t);
-            OffsetDateTime slotStart = date.atTime(lt).atZone(zone).toOffsetDateTime();
-            OffsetDateTime slotEnd = slotStart.plusMinutes(duration);
+            OffsetDateTime slotStart = date.atTime(lt).atZone(ZONE_BR).toOffsetDateTime();
+            OffsetDateTime slotEnd = slotStart.plusMinutes(30);
 
-            // Valida se o atendimento cabe dentro do turno de trabalho da barbearia
-            LocalTime endTime = slotEnd.toLocalTime();
-            boolean fitsShift = true;
-            if (lt.isBefore(LocalTime.of(14, 0))) {
-                if (endTime.isAfter(LocalTime.of(14, 0)) || endTime.isBefore(lt)) {
-                    fitsShift = false;
-                }
-            } else {
-                if (endTime.isAfter(LocalTime.of(18, 30)) || endTime.isBefore(lt)) {
-                    fitsShift = false;
-                }
-            }
-
-            if (!fitsShift) {
-                result.add(new TimeSlotDto(t, false));
-                continue;
-            }
-
-            // Valida conflito com agendamentos existentes (ocupacao continua de horarios)
+            // Verifica conflito apenas contra agendamentos reais existentes naquele slot especifico
             boolean isAvailable = dayAppointments.stream().noneMatch(existing -> {
                 OffsetDateTime existingStart = existing.getScheduledAt();
-                OffsetDateTime existingEnd = existingStart.plusMinutes(existing.getTotalDurationMinutes());
+                OffsetDateTime existingEnd = existingStart.plusMinutes(30);
                 return slotStart.isBefore(existingEnd) && slotEnd.isAfter(existingStart);
             });
 

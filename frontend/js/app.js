@@ -304,6 +304,14 @@ const app = createApp({
     const selectedDay = ref('');
     const selectedTime = ref('');
     const apiSlots = ref([]);
+    const dayBlockStatus = ref({ shopClosed: false, shopClosedByMaster: false, closedBarberIds: [] });
+
+    const toLocalIsoDate = (d = new Date()) => {
+      const yr = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, '0');
+      const da = String(d.getDate()).padStart(2, '0');
+      return `${yr}-${mo}-${da}`;
+    };
 
     // BroadcastChannel para sincronizacao imediata entre abas do navegador (BarberNotify <-> BarberAdmin)
     const syncChannel = typeof window !== 'undefined' && window.BroadcastChannel ? new BroadcastChannel('barber_notify_sync') : null;
@@ -381,9 +389,22 @@ const app = createApp({
 
     const fetchSlots = async () => {
       if (!selectedBarber.value?.id || !selectedDay.value) return;
+      const targetBarberId = selectedBarber.value.id;
+      const targetDay = selectedDay.value;
       try {
         const duration = totalDurationMinutes.value > 0 ? totalDurationMinutes.value : 30;
-        const res = await fetch(`${API_BASE}/appointments/slots?barberId=${selectedBarber.value.id}&date=${selectedDay.value}&duration=${duration}`);
+        const [res, blockRes] = await Promise.all([
+          fetch(`${API_BASE}/appointments/slots?barberId=${targetBarberId}&date=${targetDay}&duration=${duration}`),
+          fetch(`${API_BASE}/appointments/day-block?date=${targetDay}`).catch(() => null)
+        ]);
+        if (selectedBarber.value?.id !== targetBarberId || selectedDay.value !== targetDay) {
+          return;
+        }
+        if (blockRes && blockRes.ok) {
+          dayBlockStatus.value = await blockRes.json();
+        } else {
+          dayBlockStatus.value = { shopClosed: false, shopClosedByMaster: false, closedBarberIds: [] };
+        }
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {
@@ -395,7 +416,7 @@ const app = createApp({
               if (currentSlot && !currentSlot.available) {
                 const lostTime = selectedTime.value;
                 selectedTime.value = '';
-                showToast(`Atenção: O horário ${lostTime} acabou de ser reservado por outro cliente!`);
+                showToast(`Atenção: O horário ${lostTime} não está mais disponível!`);
               }
             }
           }
@@ -431,11 +452,10 @@ const app = createApp({
 
       const now = new Date();
       for (let i = 0; i < 10; i++) {
-        const d = new Date(now);
-        d.setDate(now.getDate() + i);
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
         const dayOfWeek = d.getDay();
         const isWorkday = dayOfWeek !== 0; // Domingo fechado
-        const isoDate = d.toISOString().split('T')[0];
+        const isoDate = toLocalIsoDate(d);
 
         days.push({
           isoDate,
@@ -485,9 +505,27 @@ const app = createApp({
       return `${weekdayStr}, ${parseInt(day)} de ${monthStr} de ${year} --${timePart}`;
     });
 
+    const isSelectedDayClosed = computed(() => {
+      if (!selectedBarber.value?.id) return false;
+      const closedIds = dayBlockStatus.value?.closedBarberIds || [];
+      if (dayBlockStatus.value?.shopClosed || closedIds.includes(selectedBarber.value.id)) {
+        return true;
+      }
+      return apiSlots.value.length > 0 && apiSlots.value.every(s => !s.available);
+    });
+
+    const dayClosedMessage = computed(() => {
+      if (!isSelectedDayClosed.value) return '';
+      if (dayBlockStatus.value?.shopClosed || dayBlockStatus.value?.shopClosedByMaster) {
+        return 'Loja fechada nesta data para novos agendamentos. Por favor, selecione outro dia acima.';
+      }
+      return 'Agenda deste profissional fechada nesta data. Selecione outro dia acima ou escolha outro profissional.';
+    });
+
     const selectDay = (isoDate) => {
       selectedDay.value = isoDate;
       selectedTime.value = ''; // reseta horario ao mudar o dia
+      apiSlots.value = [];
       fetchSlots();
     };
 
@@ -613,6 +651,8 @@ const app = createApp({
 
     const selectBarber = (barber) => {
       selectedBarber.value = barber;
+      selectedTime.value = '';
+      apiSlots.value = [];
       if (selectedDay.value) {
         fetchSlots();
       }
@@ -875,7 +915,7 @@ const app = createApp({
 
     // Inicializacao
     onMounted(() => {
-      const todayIso = new Date().toISOString().split('T')[0];
+      const todayIso = toLocalIsoDate(new Date());
       const todayDisplay = formatDisplayDate(todayIso);
 
       // Mock interligado inicial entre BarberNotify e BarberAdmin
@@ -1010,6 +1050,8 @@ const app = createApp({
       selectedTime,
       availableDays,
       availableTimeSlots,
+      isSelectedDayClosed,
+      dayClosedMessage,
       selectedDateFormattedFull,
       isServiceSelected,
       toggleService,

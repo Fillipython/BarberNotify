@@ -38,4 +38,17 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             @Param("barberId") UUID barberId,
             @Param("start") OffsetDateTime start,
             @Param("end") OffsetDateTime end);
+
+    @Query("SELECT a FROM Appointment a " +
+           "JOIN FETCH a.barber b " +
+           "JOIN FETCH a.client c " +
+           "LEFT JOIN FETCH a.services s " +
+           "LEFT JOIN FETCH s.service " +
+           "WHERE a.status <> 'CANCELLED' " +
+           "AND a.scheduledAt >= :start " +
+           "AND a.scheduledAt <= :end " +
+           "ORDER BY a.scheduledAt ASC")
+    List<Appointment> findActiveInPeriod(
+            @Param("start") OffsetDateTime start,
+            @Param("end") OffsetDateTime end);
 }

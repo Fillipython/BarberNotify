@@ -27,6 +27,11 @@ public class BarberService {
     }
 
     @Transactional(readOnly = true)
+    public List<Barber> findAllActiveEntities() {
+        return barberRepository.findByIsActiveTrueOrderByNameAsc();
+    }
+
+    @Transactional(readOnly = true)
     public Barber findEntityById(UUID id) {
         return barberRepository.findByIdAndIsActiveTrue(id)
                 .orElseThrow(() -> new IllegalArgumentException("Barbeiro nao encontrado ou inativo"));
