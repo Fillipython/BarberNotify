@@ -79,16 +79,15 @@ jobs:
               $DOCKER_CMD up -d --build postgres backend frontend
             fi
 
-            # 3) Interliga explicitamente as redes Docker entre BarberNotify e BarberAdmin
-            for NET in barbernotify_barber_man_network barberadmin_barber_admin_network; do
-              $DOCKER_CLI network connect "$NET" barber_admin_postgres 2>/dev/null || true
-              $DOCKER_CLI network connect "$NET" barber_admin_backend 2>/dev/null || true
-              $DOCKER_CLI network connect "$NET" barber_admin_frontend 2>/dev/null || true
-              $DOCKER_CLI network connect "$NET" barber_man_frontend 2>/dev/null || true
-              $DOCKER_CLI network connect "$NET" barber_man_backend 2>/dev/null || true
-            done
+            # 3) Mantém barber_man_frontend exclusivamente na rede barbernotify_barber_man_network
+            #    (evitando conflito do alias DNS 'backend') e conecta os containers do BarberAdmin nela pelo container_name
+            $DOCKER_CLI network disconnect barberadmin_barber_admin_network barber_man_frontend 2>/dev/null || true
+            $DOCKER_CLI network disconnect barberadmin_barber_admin_network barber_man_backend 2>/dev/null || true
 
-            sleep 15
+            $DOCKER_CLI network connect barbernotify_barber_man_network barber_admin_backend 2>/dev/null || true
+            $DOCKER_CLI network connect barbernotify_barber_man_network barber_admin_frontend 2>/dev/null || true
+
+            sleep 5
             $DOCKER_CLI exec barber_man_frontend nginx -s reload 2>/dev/null || $DOCKER_CLI restart barber_man_frontend
 
             echo "Deploy concluído com sucesso!"
