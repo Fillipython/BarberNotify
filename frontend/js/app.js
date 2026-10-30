@@ -367,11 +367,10 @@ const app = createApp({
 
     const sendWebhookToBarberAdmin = async (payload) => {
       try {
-        await fetch(`${ADMIN_API_BASE}/barbernotify/webhook`, {
+        await fetch(`${ADMIN_API_BASE}/barbernotify/sync`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'X-BarberNotify-Secret': 'barbernotify_webhook_secret_2026'
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify(payload)
         });

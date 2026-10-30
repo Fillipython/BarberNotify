@@ -203,9 +203,9 @@ public class AppointmentService {
 
             CompletableFuture.runAsync(() -> {
                 String[] targets = {
-                        "http://barber_admin_backend:8080/api/v1/barbernotify/webhook",
-                        "http://host.docker.internal:8080/api/v1/barbernotify/webhook",
-                        "http://localhost:8080/api/v1/barbernotify/webhook"
+                        "http://barber_admin_backend:8080/api/v1/barbernotify/sync",
+                        "http://host.docker.internal:8080/api/v1/barbernotify/sync",
+                        "http://localhost:8080/api/v1/barbernotify/sync"
                 };
                 HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build();
                 for (String url : targets) {
@@ -214,7 +214,6 @@ public class AppointmentService {
                                 .uri(URI.create(url))
                                 .timeout(Duration.ofSeconds(3))
                                 .header("Content-Type", "application/json")
-                                .header("X-BarberNotify-Secret", "barbernotify_webhook_secret_2026")
                                 .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                                 .build();
                         HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
