@@ -7,6 +7,50 @@ const API_BASE = window.API_BASE_URL || (
     : (isSubpath ? '/BarberNotify/api' : '/api')
 );
 
+const ADMIN_API_BASE = window.ADMIN_API_BASE_URL || (
+  window.location.hostname.includes('fillipython.ddns.net') || isSubpath
+    ? `${window.location.protocol}//${window.location.host}/BarberAdmin/api/v1`
+    : 'http://localhost:8080/api/v1'
+);
+
+function buildInitialsSvg(name) {
+  const parts = String(name || 'BM').trim().split(/\s+/);
+  const initials = parts.length > 1
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : parts[0].substring(0, 2).toUpperCase();
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" rx="60" fill="#18202f"/><circle cx="60" cy="60" r="56" fill="none" stroke="#d4af37" stroke-width="3"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#fbbf24" font-family="Inter, sans-serif" font-weight="700" font-size="42">${initials}</text></svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+function resolveBarberAvatar(rawUrl, barberName, fallbackUrl) {
+  if (rawUrl === 'REMOVED' || rawUrl === 'NONE') {
+    return buildInitialsSvg(barberName);
+  }
+  if (!rawUrl) {
+    return fallbackUrl || buildInitialsSvg(barberName);
+  }
+  if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://') || rawUrl.startsWith('data:')) {
+    return rawUrl;
+  }
+  const isProdHost = window.location.hostname.includes('fillipython.ddns.net') || isSubpath;
+  const adminOrigin = isProdHost
+    ? `${window.location.protocol}//${window.location.host}/BarberAdmin`
+    : 'http://localhost:8080';
+  if (rawUrl.startsWith('/BarberAdmin/')) {
+    return `${window.location.protocol}//${window.location.host}${rawUrl}`;
+  }
+  if (rawUrl.startsWith('/api/')) {
+    return `${adminOrigin}${rawUrl}`;
+  }
+  return `${adminOrigin}/api${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
+}
+
+const DEFAULT_BARBER_PHOTOS = {
+  '8a350074-5524-453d-a625-2b25e7e8ca59': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=250&auto=format&fit=crop&q=80',
+  '70b1fee3-a338-4444-90f9-f4551afc15fe': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=250&auto=format&fit=crop&q=80',
+  '0670b734-45c1-4435-ad0e-b8d6b3099c7e': 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=250&auto=format&fit=crop&q=80'
+};
+
 const app = createApp({
   setup() {
     // Estado do Cliente
@@ -48,66 +92,57 @@ const app = createApp({
       });
     });
 
-    // Base de Clientes Cadastrados (Mock local que simula a base de dados)
-    const mockKnownClients = [
-      {
-        id: 'c1-demo',
-        name: 'Cliente Exemplo',
-        phone: '11999990000',
-        email: 'cliente.exemplo@exemplo.com',
-        notificationsEnabled: true
-      },
-      {
-        id: 'c2-carlos',
-        name: 'Carlos Oliveira',
-        phone: '11988887777',
-        email: 'carlos.oliveira@exemplo.com',
-        notificationsEnabled: false
-      }
-    ];
-
-    // Barbeiros Cadastrados (Barber Man) com UUIDs reais do PostgreSQL
+    // Barbeiros Cadastrados (Barber Man) sincronizados com o BarberAdmin
     const barbers = ref([
       {
-        id: '256ae6f2-f471-4d6f-8874-511bb968076d',
+        id: '8a350074-5524-453d-a625-2b25e7e8ca59',
         name: 'Carlos Silva',
+        nickname: 'Mestre Carlos',
+        email: 'contato@barberman.com.br',
+        phone: '11988880001',
         role: 'Fundador & Barbeiro Master',
-        bio: 'Administrador geral do Barber Man. 10 anos de experiencia em visagismo e cortes de alta precisao.',
+        bio: 'Fundador e Administrador Geral do Barber Man. Especialista em visagismo e cortes premium.',
         isAdmin: true,
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
+        avatar: DEFAULT_BARBER_PHOTOS['8a350074-5524-453d-a625-2b25e7e8ca59']
       },
       {
-        id: '3542d755-e20f-431f-b783-f1beb18b8a0f',
+        id: '70b1fee3-a338-4444-90f9-f4551afc15fe',
         name: 'Lucas Santana',
+        nickname: 'Lucas Navalha',
+        email: 'lucas@barberman.com.br',
+        phone: '11988880002',
         role: 'Barbeiro Especialista',
-        bio: 'Referencia em degrade navalhado, barboterapia e acabamentos detalhados.',
+        bio: 'Especialista em degrade navalhado e barba terapia.',
         isAdmin: false,
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80'
+        avatar: DEFAULT_BARBER_PHOTOS['70b1fee3-a338-4444-90f9-f4551afc15fe']
       },
       {
-        id: 'b202cd1e-fd65-4008-be9d-b7e301dba107',
+        id: '0670b734-45c1-4435-ad0e-b8d6b3099c7e',
         name: 'Matheus Oliveira',
+        nickname: 'Matheus Fade',
+        email: 'matheus@barberman.com.br',
+        phone: '11988880003',
         role: 'Barbeiro & Colorista',
-        bio: 'Especialista em platinados, luzes, pigmentacao e cortes modernos.',
+        bio: 'Especialista em platinados, luzes e cortes modernos.',
         isAdmin: false,
-        avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80'
+        avatar: DEFAULT_BARBER_PHOTOS['0670b734-45c1-4435-ad0e-b8d6b3099c7e']
       }
     ]);
 
     const selectedBarber = ref(barbers.value[0]);
 
-    // Lista Exata dos 14 Servicos Solicitados com Precos e Duracoes
+    // Lista Completa dos 16 Servicos Sincronizados com BarberAdmin
     const services = ref([
       {
-        id: '71255167-685c-4401-bafd-ba7b3d28a5da',
-        name: 'Botox/desondulaçao',
+        id: '16b14dc5-1df2-4041-a26b-4b292ca2db35',
+        name: 'Botox/desondulacao',
         priceCents: 5000,
         durationMinutes: 60,
         durationLabel: '1hr',
         image: 'assets/services/botox_desondulacao.jpg'
       },
       {
-        id: 'ad0075d8-7a6a-4cb6-a706-3058da6f47f6',
+        id: 'a7cb2ec3-f68f-42ff-859a-58666d3b727c',
         name: 'Selagem',
         priceCents: 7500,
         durationMinutes: 60,
@@ -115,15 +150,15 @@ const app = createApp({
         image: 'assets/services/selagem.jpg'
       },
       {
-        id: '6ebfeaed-607f-490a-8875-a4add597cc8a',
-        name: 'Hidratação',
+        id: 'b5eac08f-4c62-40be-b974-c00881aa99e0',
+        name: 'Hidratacao',
         priceCents: 2000,
         durationMinutes: 15,
         durationLabel: '15min',
         image: 'assets/services/hidratacao.jpg'
       },
       {
-        id: '5caac1e8-fbca-4b97-a107-13782cad4b40',
+        id: '650e3202-2f1f-435f-91b9-442e47912118',
         name: 'Alisamento',
         priceCents: 2000,
         durationMinutes: 15,
@@ -131,15 +166,15 @@ const app = createApp({
         image: 'assets/services/alisamento.jpg'
       },
       {
-        id: 'a888baaf-c1b6-4161-aa50-d586b81ce2c8',
-        name: 'Pigmentação',
+        id: '187ebf61-e48d-4665-a71e-8076768b3915',
+        name: 'Pigmentacao',
         priceCents: 2000,
         durationMinutes: 30,
         durationLabel: '30min',
         image: 'assets/services/pigmentacao.jpg'
       },
       {
-        id: 'af31c8c8-b37a-4164-81c7-85aeeaad0f72',
+        id: '5379777b-3c95-42b4-9baa-06b621a325b8',
         name: 'Corte',
         priceCents: 3000,
         durationMinutes: 30,
@@ -147,7 +182,7 @@ const app = createApp({
         image: 'assets/services/corte.jpg'
       },
       {
-        id: 'b0243eb9-2acc-4111-bf3c-3bd0df6aa9bb',
+        id: '1332638b-4d7f-467f-ba2e-c0f6614ee0c6',
         name: 'Corte kids',
         priceCents: 3000,
         durationMinutes: 30,
@@ -155,7 +190,7 @@ const app = createApp({
         image: 'assets/services/corte_kids.jpg'
       },
       {
-        id: 'b966c13f-7a2a-4023-b3e4-67119c3bd6cf',
+        id: 'bd3ac8a7-5955-4a97-a275-c621f635e635',
         name: 'Corte & Sobrancelha',
         priceCents: 3500,
         durationMinutes: 30,
@@ -163,7 +198,7 @@ const app = createApp({
         image: 'assets/services/corte_sobrancelha.jpg'
       },
       {
-        id: 'adfdc695-da63-4b35-98d0-d704ba3d5c76',
+        id: 'b629d3af-6e6c-4c2f-930c-becd3c78bb58',
         name: 'Platinado & Corte',
         priceCents: 13000,
         durationMinutes: 60,
@@ -171,7 +206,7 @@ const app = createApp({
         image: 'assets/services/platinado_corte.jpg'
       },
       {
-        id: 'c94cfaa6-b11d-4665-a2d0-057e7da7d0bc',
+        id: '497594fe-cdc2-4ae5-a928-523ffd3fd522',
         name: 'Luzes & Corte',
         priceCents: 10000,
         durationMinutes: 60,
@@ -179,7 +214,7 @@ const app = createApp({
         image: 'assets/services/luzes_corte.jpg'
       },
       {
-        id: '7bac199d-6214-4f23-8d3d-900080bff0bd',
+        id: '85f353f0-229b-4586-9850-dc2b65434a63',
         name: 'Corte & Barba',
         priceCents: 5000,
         durationMinutes: 60,
@@ -187,7 +222,7 @@ const app = createApp({
         image: 'assets/services/corte_barba.jpg'
       },
       {
-        id: '68c71d3d-7a24-4a3d-8576-25c7d56ccff4',
+        id: 'e3ce8dc4-44f0-4d62-95d1-8651ea77d353',
         name: 'Barba',
         priceCents: 2500,
         durationMinutes: 30,
@@ -195,7 +230,7 @@ const app = createApp({
         image: 'assets/services/barba.jpg'
       },
       {
-        id: 'e982fc13-3932-447e-b777-e5f66ea065df',
+        id: '80af0829-4a7f-4745-a945-c7c8fa2dd00d',
         name: 'Corte, Barba & Sobrancelha',
         priceCents: 5500,
         durationMinutes: 60,
@@ -203,12 +238,28 @@ const app = createApp({
         image: 'assets/services/corte_barba_sobrancelha.jpg'
       },
       {
-        id: '59448ee1-f364-4862-baa6-8bbf46da6b34',
+        id: '9095beb0-8eb7-447c-aa9f-e52e03e65c36',
         name: 'Corte & barba simples',
         priceCents: 4000,
         durationMinutes: 30,
         durationLabel: '30min',
         image: 'assets/services/corte_barba_simples.jpg'
+      },
+      {
+        id: '3dcf6649-b31e-4fad-b493-4d06c86b5ff1',
+        name: 'Corte, sobrancelha & barba simples',
+        priceCents: 4500,
+        durationMinutes: 30,
+        durationLabel: '30min',
+        image: 'assets/services/corte_barba_simples.jpg'
+      },
+      {
+        id: '3d0ecd31-320a-4f35-bd57-071a3bb66ec8',
+        name: 'Pezinho & Barba',
+        priceCents: 3000,
+        durationMinutes: 30,
+        durationLabel: '30min',
+        image: 'assets/services/barba.jpg'
       }
     ]);
 
@@ -254,15 +305,80 @@ const app = createApp({
     const selectedTime = ref('');
     const apiSlots = ref([]);
 
-    // BroadcastChannel para sincronizacao imediata entre abas do navegador
+    // BroadcastChannel para sincronizacao imediata entre abas do navegador (BarberNotify <-> BarberAdmin)
     const syncChannel = typeof window !== 'undefined' && window.BroadcastChannel ? new BroadcastChannel('barber_notify_sync') : null;
     if (syncChannel) {
       syncChannel.onmessage = (event) => {
         if (event.data === 'appointment_changed') {
           fetchSlots();
+        } else if (event.data === 'staff_updated') {
+          syncBarbersFromApis();
         }
       };
     }
+
+    const syncBarbersFromApis = async () => {
+      let notifyBarbers = null;
+      let adminStaff = null;
+
+      try {
+        const res = await fetch(`${API_BASE}/barbers`);
+        if (res.ok) notifyBarbers = await res.json();
+      } catch (e) {}
+
+      try {
+        const resAdmin = await fetch(`${ADMIN_API_BASE}/staff`);
+        if (resAdmin.ok) adminStaff = await resAdmin.json();
+      } catch (e) {}
+
+      // Se o BarberAdmin retornou a equipe atualizada (com as fotos alteradas ou removidas pelo barbeiro), usa como fonte principal
+      const sourceList = (Array.isArray(adminStaff) && adminStaff.length > 0)
+        ? adminStaff
+        : (Array.isArray(notifyBarbers) && notifyBarbers.length > 0 ? notifyBarbers : null);
+
+      if (sourceList) {
+        const currentSelectedId = selectedBarber.value?.id;
+        barbers.value = sourceList.map((b) => {
+          const isMasterRole = b.role === 'MASTER' || b.isAdmin === true;
+          const fallbackPhoto = DEFAULT_BARBER_PHOTOS[b.id] || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=250&auto=format&fit=crop&q=80';
+          // Verifica também se há override no notifyBarbers ou no adminStaff
+          const adminMatch = Array.isArray(adminStaff) ? adminStaff.find(a => a.id === b.id || a.email === b.email) : null;
+          const rawAvatar = (adminMatch && adminMatch.avatarUrl !== undefined && adminMatch.avatarUrl !== null)
+            ? adminMatch.avatarUrl
+            : b.avatarUrl;
+
+          return {
+            id: b.id,
+            name: b.name,
+            nickname: b.nickname || '',
+            email: b.email || '',
+            phone: b.phone || '',
+            role: isMasterRole ? 'Fundador & Barbeiro Master' : 'Barbeiro Especialista',
+            bio: b.bio || '',
+            isAdmin: isMasterRole,
+            avatar: resolveBarberAvatar(rawAvatar, b.name, fallbackPhoto)
+          };
+        });
+
+        const found = barbers.value.find(b => b.id === currentSelectedId);
+        selectedBarber.value = found || barbers.value[0];
+      }
+    };
+
+    const sendWebhookToBarberAdmin = async (payload) => {
+      try {
+        await fetch(`${ADMIN_API_BASE}/barbernotify/webhook`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-BarberNotify-Secret': 'barbernotify_webhook_secret_2026'
+          },
+          body: JSON.stringify(payload)
+        });
+      } catch (e) {
+        console.warn('Webhook direto para BarberAdmin indisponivel:', e);
+      }
+    };
 
     const fetchSlots = async () => {
       if (!selectedBarber.value?.id || !selectedDay.value) return;
@@ -658,7 +774,23 @@ const app = createApp({
 
         const aptData = await aptRes.json();
 
-        // 4. Agendamento validado e salvo com sucesso no banco de dados!
+        // 4. Sincroniza também diretamente com o BarberAdmin via Webhook
+        await sendWebhookToBarberAdmin({
+          eventType: 'APPOINTMENT_CREATED',
+          externalId: aptData.id,
+          clientName: client.value.name,
+          clientPhone: client.value.phone,
+          clientEmail: client.value.email || '',
+          barberId: selectedBarber.value.id,
+          barberName: selectedBarber.value.name,
+          serviceName: selectedServices.value.map(s => s.name).join(', '),
+          scheduledAt: scheduledIso,
+          durationMinutes: totalDurationMinutes.value || 30,
+          customPriceCents: totalPriceCents.value,
+          origin: 'PORTAL'
+        });
+
+        // 5. Agendamento validado e salvo com sucesso no banco de dados!
         const newAppointment = {
           id: aptData.id,
           clientId: clientDbId,
@@ -672,6 +804,7 @@ const app = createApp({
           totalDurationLabel: totalDurationLabel.value,
           date: formatDisplayDate(selectedDay.value),
           time: selectedTime.value,
+          scheduledAt: scheduledIso,
           status: 'CONFIRMADO',
           createdAt: new Date().toISOString()
         };
@@ -680,7 +813,7 @@ const app = createApp({
         localStorage.setItem('barber_man_appointments', JSON.stringify(allAppointments.value));
         lastConfirmedAppointment.value = newAppointment;
 
-        // Notifica outras abas locais para atualizarem os slots
+        // Notifica outras abas locais (incluindo BarberAdmin) para atualizarem a agenda
         syncChannel?.postMessage('appointment_changed');
 
         stopSlotsPolling();
@@ -698,12 +831,27 @@ const app = createApp({
     };
 
     const cancelAppointment = async (appointmentId) => {
+      const targetApt = allAppointments.value.find(a => a.id === appointmentId);
       try {
         await fetch(`${API_BASE}/appointments/${appointmentId}/cancel`, {
           method: 'PATCH'
         });
       } catch (e) {
         console.warn('Erro ao cancelar agendamento na API:', e);
+      }
+
+      if (targetApt) {
+        await sendWebhookToBarberAdmin({
+          eventType: 'APPOINTMENT_CANCELLED',
+          externalId: appointmentId,
+          clientName: targetApt.clientName || client.value.name || 'Cliente',
+          clientPhone: targetApt.clientPhone || client.value.phone || '11999999999',
+          barberId: targetApt.barberId || selectedBarber.value?.id,
+          barberName: targetApt.barberName || selectedBarber.value?.name,
+          serviceName: (targetApt.servicesNames || ['Corte']).join(', '),
+          scheduledAt: targetApt.scheduledAt || new Date().toISOString(),
+          origin: 'PORTAL'
+        });
       }
 
       const list = allAppointments.value.map(a => {
@@ -728,14 +876,76 @@ const app = createApp({
 
     // Inicializacao
     onMounted(() => {
-      // Carrega agendamentos salvos
+      const todayIso = new Date().toISOString().split('T')[0];
+      const todayDisplay = formatDisplayDate(todayIso);
+
+      // Mock interligado inicial entre BarberNotify e BarberAdmin
+      const defaultMockAppointments = [
+        {
+          id: 'a1000000-0000-0000-0000-000000000001',
+          clientId: 'c1000000-0000-0000-0000-000000000001',
+          clientName: 'Gabriel Santos',
+          clientPhone: '11977771001',
+          clientEmail: 'gabriel.santos@exemplo.com',
+          barberId: '8a350074-5524-453d-a625-2b25e7e8ca59',
+          barberName: 'Carlos Silva',
+          servicesNames: ['Platinado & Corte'],
+          totalPriceCents: 13000,
+          totalDurationLabel: '1hr',
+          date: todayDisplay,
+          time: '11:00',
+          scheduledAt: `${todayIso}T11:00:00-03:00`,
+          status: 'CONFIRMADO',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'a1000000-0000-0000-0000-000000000002',
+          clientId: 'c1000000-0000-0000-0000-000000000002',
+          clientName: 'Rodrigo Albuquerque',
+          clientPhone: '11977771002',
+          clientEmail: 'rodrigo.albuquerque@exemplo.com',
+          barberId: '70b1fee3-a338-4444-90f9-f4551afc15fe',
+          barberName: 'Lucas Santana',
+          servicesNames: ['Corte & Barba'],
+          totalPriceCents: 5000,
+          totalDurationLabel: '1hr',
+          date: todayDisplay,
+          time: '14:00',
+          scheduledAt: `${todayIso}T14:00:00-03:00`,
+          status: 'CONFIRMADO',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'a1000000-0000-0000-0000-000000000003',
+          clientId: 'c1000000-0000-0000-0000-000000000003',
+          clientName: 'Rafael Moreira',
+          clientPhone: '11977771003',
+          clientEmail: 'rafael.moreira@exemplo.com',
+          barberId: '0670b734-45c1-4435-ad0e-b8d6b3099c7e',
+          barberName: 'Matheus Oliveira',
+          servicesNames: ['Luzes & Corte'],
+          totalPriceCents: 10000,
+          totalDurationLabel: '1hr',
+          date: todayDisplay,
+          time: '16:00',
+          scheduledAt: `${todayIso}T16:00:00-03:00`,
+          status: 'CONFIRMADO',
+          createdAt: new Date().toISOString()
+        }
+      ];
+
+      // Carrega agendamentos salvos ou popula o mock interligado
       const stored = localStorage.getItem('barber_man_appointments');
       if (stored) {
         try {
-          allAppointments.value = JSON.parse(stored);
+          const parsed = JSON.parse(stored);
+          allAppointments.value = Array.isArray(parsed) && parsed.length > 0 ? parsed : defaultMockAppointments;
         } catch (e) {
-          allAppointments.value = [];
+          allAppointments.value = defaultMockAppointments;
         }
+      } else {
+        allAppointments.value = defaultMockAppointments;
+        localStorage.setItem('barber_man_appointments', JSON.stringify(defaultMockAppointments));
       }
 
       // Verifica se cliente ja esta salvo no navegador (2a iteracao em diante)
@@ -754,23 +964,8 @@ const app = createApp({
         }
       }
 
-      // Sincroniza lista de barbeiros com a API do backend
-      fetch(`${API_BASE}/barbers`)
-        .then(r => r.json())
-        .then(data => {
-          if (Array.isArray(data) && data.length > 0) {
-            barbers.value = data.map((b, idx) => ({
-              id: b.id,
-              name: b.name,
-              role: b.isAdmin ? 'Fundador & Barbeiro Master' : 'Barbeiro Especialista',
-              bio: b.bio || '',
-              isAdmin: b.isAdmin,
-              avatar: b.avatarUrl || barbers.value[idx]?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
-            }));
-            selectedBarber.value = barbers.value[0];
-          }
-        })
-        .catch(e => console.warn('Usando barbeiros locais:', e));
+      // Sincroniza barbeiros e fotos com BarberNotify e BarberAdmin
+      syncBarbersFromApis();
 
       // Sincroniza UUIDs dos servicos com o backend preservando a lista e fotos
       fetch(`${API_BASE}/services`)

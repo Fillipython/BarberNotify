@@ -1,4 +1,4 @@
-name: Deploy Automático - Oracle Cloud
+name: Deploy Automático - Oracle Cloud (BarberNotify + BarberAdmin)
 
 on:
   push:
@@ -19,8 +19,16 @@ jobs:
           timeout: 60s
           command_timeout: 15m
           script: |
-            echo "Iniciando deploy automático do BarberNotify..."
-            # Encontra e acessa o diretório do projeto
+            echo "Iniciando deploy automático do BarberNotify + BarberAdmin..."
+
+            DOCKER_CMD="docker compose"
+            if ! docker ps >/dev/null 2>&1; then
+              if sudo docker ps >/dev/null 2>&1; then
+                DOCKER_CMD="sudo docker compose"
+              fi
+            fi
+
+            # 1) Atualiza BarberNotify preservando o nginx/conf.d/default.conf da VPS
             if [ -d "$HOME/BarberNotify" ]; then
               cd "$HOME/BarberNotify"
             elif [ -d "/home/ubuntu/BarberNotify" ]; then
@@ -30,21 +38,47 @@ jobs:
             elif [ -d "/var/www/BarberNotify" ]; then
               cd "/var/www/BarberNotify"
             else
-              cd "$(find /home /var/www -maxdepth 3 -name BarberNotify 2>/dev/null | head -n 1)"
+              cd "$(find /home /var/www /root -maxdepth 3 -name BarberNotify 2>/dev/null | head -n 1)"
             fi
 
-            echo "Baixando atualizações do GitHub..."
-            git pull origin main
-
-            DOCKER_CMD="docker compose"
-            if ! docker ps >/dev/null 2>&1; then
-              if sudo docker ps >/dev/null 2>&1; then
-                DOCKER_CMD="sudo docker compose"
-              fi
+            if [ -f "nginx/conf.d/default.conf" ]; then
+              cp nginx/conf.d/default.conf /tmp/barbernotify_nginx_default.conf.bak
             fi
 
-            echo "Atualizando containers com $DOCKER_CMD..."
-            $DOCKER_CMD up -d --build backend evolution_api
-            $DOCKER_CMD restart frontend || docker exec barber_man_frontend nginx -s reload || sudo docker exec barber_man_frontend nginx -s reload
+            echo "Baixando atualizações do BarberNotify..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            if [ -f "/tmp/barbernotify_nginx_default.conf.bak" ]; then
+              cp /tmp/barbernotify_nginx_default.conf.bak nginx/conf.d/default.conf
+            fi
+
+            echo "Atualizando containers do BarberNotify com $DOCKER_CMD..."
+            $DOCKER_CMD up -d --build backend
+            docker exec barber_man_frontend nginx -s reload || sudo docker exec barber_man_frontend nginx -s reload || $DOCKER_CMD restart frontend
+
+            # 2) Atualiza BarberAdmin na mesma VPS
+            BARBER_ADMIN_DIR=""
+            if [ -d "$HOME/BarberAdmin" ]; then
+              BARBER_ADMIN_DIR="$HOME/BarberAdmin"
+            elif [ -d "/home/ubuntu/BarberAdmin" ]; then
+              BARBER_ADMIN_DIR="/home/ubuntu/BarberAdmin"
+            elif [ -d "/home/opc/BarberAdmin" ]; then
+              BARBER_ADMIN_DIR="/home/opc/BarberAdmin"
+            elif [ -d "/var/www/BarberAdmin" ]; then
+              BARBER_ADMIN_DIR="/var/www/BarberAdmin"
+            else
+              BARBER_ADMIN_DIR="$(find /home /var/www /root -maxdepth 3 -name BarberAdmin 2>/dev/null | head -n 1)"
+            fi
+
+            if [ -n "$BARBER_ADMIN_DIR" ] && [ -d "$BARBER_ADMIN_DIR" ]; then
+              echo "Encontrado BarberAdmin em $BARBER_ADMIN_DIR. Atualizando..."
+              cd "$BARBER_ADMIN_DIR"
+              git fetch origin main
+              git reset --hard origin/main
+              $DOCKER_CMD up -d --build backend frontend
+            else
+              echo "Aviso: diretório BarberAdmin não localizado na VPS."
+            fi
 
             echo "Deploy concluído com sucesso!"

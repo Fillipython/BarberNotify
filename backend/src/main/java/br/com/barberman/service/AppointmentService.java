@@ -11,11 +11,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -144,6 +149,10 @@ public class AppointmentService {
                     .build());
         }
 
+        String joinedServiceNames = services.stream().map(ServiceItem::getName).collect(Collectors.joining(", "));
+        Appointment target = saved != null ? saved : appointment;
+        notifyBarberAdminAsync("APPOINTMENT_CREATED", target, barber, client, joinedServiceNames);
+
         return AppointmentResponseDto.fromEntity(saved);
     }
 
@@ -167,7 +176,62 @@ public class AppointmentService {
         Appointment apt = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Agendamento nao encontrado"));
         apt.setStatus("CANCELLED");
-        appointmentRepository.save(apt);
+        Appointment saved = appointmentRepository.save(apt);
+        Appointment target = saved != null ? saved : apt;
+        if (target.getBarber() != null && target.getClient() != null) {
+            notifyBarberAdminAsync("APPOINTMENT_CANCELLED", target, target.getBarber(), target.getClient(), "Cancelado pelo cliente");
+        }
+    }
+
+    private void notifyBarberAdminAsync(String eventType, Appointment apt, Barber barber, Client client, String serviceName) {
+        try {
+            String extId = apt.getId() != null ? apt.getId().toString() : "";
+            String cName = escapeJson(client.getName());
+            String cPhone = escapeJson(client.getPhone());
+            String cEmail = escapeJson(client.getEmail());
+            String bId = barber.getId() != null ? barber.getId().toString() : "";
+            String bName = escapeJson(barber.getName());
+            String sName = escapeJson(serviceName != null && !serviceName.isBlank() ? serviceName : "Corte");
+            String sched = apt.getScheduledAt() != null ? apt.getScheduledAt().toString() : OffsetDateTime.now().toString();
+            int dur = apt.getTotalDurationMinutes() != null ? apt.getTotalDurationMinutes() : 30;
+            int price = apt.getTotalPriceCents() != null ? apt.getTotalPriceCents() : 3000;
+
+            String jsonPayload = String.format(
+                    "{\"eventType\":\"%s\",\"externalId\":\"%s\",\"clientName\":\"%s\",\"clientPhone\":\"%s\",\"clientEmail\":\"%s\",\"barberId\":\"%s\",\"barberName\":\"%s\",\"serviceName\":\"%s\",\"scheduledAt\":\"%s\",\"durationMinutes\":%d,\"customPriceCents\":%d,\"origin\":\"PORTAL\"}",
+                    eventType, extId, cName, cPhone, cEmail, bId, bName, sName, sched, dur, price
+            );
+
+            CompletableFuture.runAsync(() -> {
+                String[] targets = {
+                        "http://barber_admin_backend:8080/api/v1/barbernotify/webhook",
+                        "http://host.docker.internal:8080/api/v1/barbernotify/webhook",
+                        "http://localhost:8080/api/v1/barbernotify/webhook"
+                };
+                HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build();
+                for (String url : targets) {
+                    try {
+                        HttpRequest req = HttpRequest.newBuilder()
+                                .uri(URI.create(url))
+                                .timeout(Duration.ofSeconds(3))
+                                .header("Content-Type", "application/json")
+                                .header("X-BarberNotify-Secret", "barbernotify_webhook_secret_2026")
+                                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                                .build();
+                        HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+                        if (resp.statusCode() >= 200 && resp.statusCode() < 300) {
+                            break;
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+            });
+        } catch (Exception ignored) {
+        }
+    }
+
+    private String escapeJson(String val) {
+        if (val == null) return "";
+        return val.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     @Transactional(readOnly = true)

@@ -37,4 +37,12 @@ public class BarberService {
         return barberRepository.findByIdAndIsActiveTrueWithLock(id)
                 .orElseThrow(() -> new IllegalArgumentException("Barbeiro nao encontrado ou inativo"));
     }
+
+    @Transactional
+    public BarberResponseDto updateAvatar(UUID id, String avatarUrl) {
+        Barber barber = barberRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Barbeiro nao encontrado"));
+        barber.setAvatarUrl(avatarUrl);
+        return BarberResponseDto.fromEntity(barberRepository.save(barber));
+    }
 }

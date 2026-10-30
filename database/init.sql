@@ -1,4 +1,4 @@
--- Script de Inicializacao da Base de Dados: Barber Man
+-- Script de Inicializacao da Base de Dados: Barber Man (Sincronizado com BarberAdmin)
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -82,29 +82,72 @@ CREATE TABLE IF NOT EXISTS notification_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Dados Iniciais: Barbeiros
-INSERT INTO barbers (name, nickname, phone, email, bio, is_admin, is_active) VALUES
-('Carlos Silva', 'Mestre Carlos', '11988880001', 'contato@barberman.com.br', 'Fundador e Administrador Geral do Barber Man. Especialista em visagismo e cortes premium.', TRUE, TRUE),
-('Lucas Santana', 'Lucas Navalha', '11988880002', 'lucas@barberman.com.br', 'Especialista em degrade navalhado e barba terapia.', FALSE, TRUE),
-('Matheus Oliveira', 'Matheus Fade', '11988880003', 'matheus@barberman.com.br', 'Especialista em platinados, luzes e cortes modernos.', FALSE, TRUE)
-ON CONFLICT (phone) DO NOTHING;
+-- Dados Iniciais: Barbeiros (UUIDs e Fotos sincronizados com BarberAdmin)
+INSERT INTO barbers (id, name, nickname, phone, email, avatar_url, bio, is_admin, is_active) VALUES
+(
+    '8a350074-5524-453d-a625-2b25e7e8ca59',
+    'Carlos Silva',
+    'Mestre Carlos',
+    '11988880001',
+    'contato@barberman.com.br',
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=250&auto=format&fit=crop&q=80',
+    'Fundador e Administrador Geral do Barber Man. Especialista em visagismo e cortes premium.',
+    TRUE,
+    TRUE
+),
+(
+    '70b1fee3-a338-4444-90f9-f4551afc15fe',
+    'Lucas Santana',
+    'Lucas Navalha',
+    '11988880002',
+    'lucas@barberman.com.br',
+    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=250&auto=format&fit=crop&q=80',
+    'Especialista em degrade navalhado e barba terapia.',
+    FALSE,
+    TRUE
+),
+(
+    '0670b734-45c1-4435-ad0e-b8d6b3099c7e',
+    'Matheus Oliveira',
+    'Matheus Fade',
+    '11988880003',
+    'matheus@barberman.com.br',
+    'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=250&auto=format&fit=crop&q=80',
+    'Especialista em platinados, luzes e cortes modernos.',
+    FALSE,
+    TRUE
+)
+ON CONFLICT (phone) DO UPDATE SET
+    name = EXCLUDED.name,
+    nickname = EXCLUDED.nickname,
+    email = EXCLUDED.email,
+    avatar_url = COALESCE(barbers.avatar_url, EXCLUDED.avatar_url),
+    bio = EXCLUDED.bio;
 
--- Dados Iniciais: Todos os 16 Servicos do Barber Man
-INSERT INTO services (name, price_cents, duration_minutes) VALUES
-('Botox/desondulacao', 5000, 60),
-('Selagem', 7500, 60),
-('Hidratacao', 2000, 15),
-('Alisamento', 2000, 15),
-('Pigmentacao', 2000, 30),
-('Corte', 3000, 30),
-('Corte kids', 3000, 30),
-('Corte & Sobrancelha', 3500, 30),
-('Platinado & Corte', 13000, 60),
-('Luzes & Corte', 10000, 60),
-('Corte & Barba', 5000, 60),
-('Barba', 2500, 30),
-('Corte, Barba & Sobrancelha', 5500, 60),
-('Corte & barba simples', 4000, 30),
-('Corte, sobrancelha & barba simples', 4500, 30),
-('Pezinho & Barba', 3000, 30)
-ON CONFLICT DO NOTHING;
+-- Dados Iniciais: Todos os 16 Servicos do Barber Man (UUIDs sincronizados com BarberAdmin)
+INSERT INTO services (id, name, price_cents, duration_minutes) VALUES
+('16b14dc5-1df2-4041-a26b-4b292ca2db35', 'Botox/desondulacao', 5000, 60),
+('a7cb2ec3-f68f-42ff-859a-58666d3b727c', 'Selagem', 7500, 60),
+('b5eac08f-4c62-40be-b974-c00881aa99e0', 'Hidratacao', 2000, 15),
+('650e3202-2f1f-435f-91b9-442e47912118', 'Alisamento', 2000, 15),
+('187ebf61-e48d-4665-a71e-8076768b3915', 'Pigmentacao', 2000, 30),
+('5379777b-3c95-42b4-9baa-06b621a325b8', 'Corte', 3000, 30),
+('1332638b-4d7f-467f-ba2e-c0f6614ee0c6', 'Corte kids', 3000, 30),
+('bd3ac8a7-5955-4a97-a275-c621f635e635', 'Corte & Sobrancelha', 3500, 30),
+('b629d3af-6e6c-4c2f-930c-becd3c78bb58', 'Platinado & Corte', 13000, 60),
+('497594fe-cdc2-4ae5-a928-523ffd3fd522', 'Luzes & Corte', 10000, 60),
+('85f353f0-229b-4586-9850-dc2b65434a63', 'Corte & Barba', 5000, 60),
+('e3ce8dc4-44f0-4d62-95d1-8651ea77d353', 'Barba', 2500, 30),
+('80af0829-4a7f-4745-a945-c7c8fa2dd00d', 'Corte, Barba & Sobrancelha', 5500, 60),
+('9095beb0-8eb7-447c-aa9f-e52e03e65c36', 'Corte & barba simples', 4000, 30),
+('3dcf6649-b31e-4fad-b493-4d06c86b5ff1', 'Corte, sobrancelha & barba simples', 4500, 30),
+('3d0ecd31-320a-4f35-bd57-071a3bb66ec8', 'Pezinho & Barba', 3000, 30)
+ON CONFLICT (id) DO NOTHING;
+
+-- Clientes Mock Interligados com BarberAdmin
+INSERT INTO clients (id, name, phone, email, notifications_enabled) VALUES
+('c1000000-0000-0000-0000-000000000001', 'Gabriel Santos', '11977771001', 'gabriel.santos@exemplo.com', TRUE),
+('c1000000-0000-0000-0000-000000000002', 'Rodrigo Albuquerque', '11977771002', 'rodrigo.albuquerque@exemplo.com', TRUE),
+('c1000000-0000-0000-0000-000000000003', 'Rafael Moreira', '11977771003', 'rafael.moreira@exemplo.com', TRUE),
+('c1000000-0000-0000-0000-000000000004', 'Bruno Mendes', '11977771004', 'bruno.mendes@exemplo.com', FALSE)
+ON CONFLICT (phone) DO NOTHING;
