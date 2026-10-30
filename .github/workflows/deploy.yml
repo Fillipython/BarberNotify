@@ -21,12 +21,14 @@ jobs:
           script: |
             echo "Iniciando deploy automático do BarberNotify + BarberAdmin..."
 
-            DOCKER_CMD="docker compose"
+            DOCKER_PREFIX=""
             if ! docker ps >/dev/null 2>&1; then
               if sudo docker ps >/dev/null 2>&1; then
-                DOCKER_CMD="sudo docker compose"
+                DOCKER_PREFIX="sudo "
               fi
             fi
+            DOCKER_CMD="${DOCKER_PREFIX}docker compose"
+            DOCKER_CLI="${DOCKER_PREFIX}docker"
 
             # 1) Atualiza BarberNotify preservando o nginx/conf.d/default.conf da VPS
             if [ -d "$HOME/BarberNotify" ]; then
@@ -55,7 +57,6 @@ jobs:
 
             echo "Atualizando containers do BarberNotify com $DOCKER_CMD..."
             $DOCKER_CMD up -d --build backend
-            docker exec barber_man_frontend nginx -s reload || sudo docker exec barber_man_frontend nginx -s reload || $DOCKER_CMD restart frontend
 
             # 2) Atualiza BarberAdmin na mesma VPS
             BARBER_ADMIN_DIR=""
@@ -80,5 +81,18 @@ jobs:
             else
               echo "Aviso: diretório BarberAdmin não localizado na VPS."
             fi
+
+            # 3) Interliga as redes Docker entre BarberNotify e BarberAdmin para proxy reverso e webhooks
+            echo "Interligando redes Docker entre BarberNotify e BarberAdmin..."
+            for NET in $($DOCKER_CLI network ls --format '{{.Name}}' | grep -E 'barber_man|barber_admin|barbernotify|barberadmin'); do
+              $DOCKER_CLI network connect "$NET" barber_admin_frontend 2>/dev/null || true
+              $DOCKER_CLI network connect "$NET" barber_admin_backend 2>/dev/null || true
+              $DOCKER_CLI network connect "$NET" barber_man_frontend 2>/dev/null || true
+              $DOCKER_CLI network connect "$NET" barber_man_backend 2>/dev/null || true
+            done
+
+            sleep 5
+            $DOCKER_CLI exec barber_admin_frontend nginx -s reload 2>/dev/null || true
+            $DOCKER_CLI exec barber_man_frontend nginx -s reload 2>/dev/null || $DOCKER_CLI restart barber_man_frontend
 
             echo "Deploy concluído com sucesso!"
