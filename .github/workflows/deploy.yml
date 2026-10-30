@@ -19,77 +19,16 @@ jobs:
           timeout: 60s
           command_timeout: 15m
           script: |
-            echo "Iniciando deploy automático do BarberNotify + BarberAdmin..."
-
-            DOCKER_PREFIX=""
+            DOCKER_CLI="docker"
             if ! docker ps >/dev/null 2>&1; then
-              if sudo docker ps >/dev/null 2>&1; then
-                DOCKER_PREFIX="sudo "
-              fi
+              DOCKER_CLI="sudo docker"
             fi
-            DOCKER_CMD="${DOCKER_PREFIX}docker compose"
-            DOCKER_CLI="${DOCKER_PREFIX}docker"
-
-            # 1) Atualiza BarberNotify preservando o nginx/conf.d/default.conf da VPS
-            if [ -d "$HOME/BarberNotify" ]; then
-              NOTIFY_DIR="$HOME/BarberNotify"
-            elif [ -d "/home/ubuntu/BarberNotify" ]; then
-              NOTIFY_DIR="/home/ubuntu/BarberNotify"
-            elif [ -d "/home/opc/BarberNotify" ]; then
-              NOTIFY_DIR="/home/opc/BarberNotify"
-            else
-              NOTIFY_DIR="$(find /home /var/www /root -maxdepth 3 -name BarberNotify 2>/dev/null | head -n 1)"
-            fi
-
-            cd "$NOTIFY_DIR"
-            rm -f "$NOTIFY_DIR/frontend/vps-status.txt" 2>/dev/null || true
-
-            if [ -f "nginx/conf.d/default.conf" ]; then
-              cp nginx/conf.d/default.conf /tmp/barbernotify_nginx_default.conf.bak
-            fi
-
-            git fetch origin main
-            git reset --hard origin/main
-
-            if [ -f "/tmp/barbernotify_nginx_default.conf.bak" ]; then
-              cp /tmp/barbernotify_nginx_default.conf.bak nginx/conf.d/default.conf
-            fi
-
-            $DOCKER_CMD up -d --build backend
-
-            # 2) Atualiza BarberAdmin na mesma VPS
-            BARBER_ADMIN_DIR=""
-            if [ -d "/home/ubuntu/projects/BarberAdmin" ]; then
-              BARBER_ADMIN_DIR="/home/ubuntu/projects/BarberAdmin"
-            elif [ -d "$HOME/BarberAdmin" ]; then
-              BARBER_ADMIN_DIR="$HOME/BarberAdmin"
-            elif [ -d "/home/ubuntu/BarberAdmin" ]; then
-              BARBER_ADMIN_DIR="/home/ubuntu/BarberAdmin"
-            else
-              BARBER_ADMIN_DIR="$(find /home /var/www /root -maxdepth 3 -name BarberAdmin 2>/dev/null | head -n 1)"
-            fi
-
-            if [ -n "$BARBER_ADMIN_DIR" ] && [ -d "$BARBER_ADMIN_DIR" ]; then
-              echo "Atualizando BarberAdmin em $BARBER_ADMIN_DIR..."
-              cd "$BARBER_ADMIN_DIR"
-              git fetch origin main
-              git reset --hard origin/main
-              mkdir -p uploads/avatars
-              chmod -R 777 uploads 2>/dev/null || sudo chmod -R 777 uploads 2>/dev/null || true
-              $DOCKER_CMD up -d --build backend frontend
-            fi
-
-            # 3) Interliga explicitamente as redes Docker entre BarberNotify e BarberAdmin
-            for NET in barbernotify_barber_man_network barberadmin_barber_admin_network; do
-              $DOCKER_CLI network connect "$NET" barber_admin_postgres 2>/dev/null || true
-              $DOCKER_CLI network connect "$NET" barber_admin_backend 2>/dev/null || true
-              $DOCKER_CLI network connect "$NET" barber_admin_frontend 2>/dev/null || true
-              $DOCKER_CLI network connect "$NET" barber_man_frontend 2>/dev/null || true
-              $DOCKER_CLI network connect "$NET" barber_man_backend 2>/dev/null || true
-            done
-
-            $DOCKER_CLI restart barber_admin_backend 2>/dev/null || true
-            sleep 8
-            $DOCKER_CLI exec barber_man_frontend nginx -s reload 2>/dev/null || $DOCKER_CLI restart barber_man_frontend
-
-            echo "Deploy concluído com sucesso!"
+            NOTIFY_DIR="$(find /home /var/www /root -maxdepth 3 -name BarberNotify 2>/dev/null | head -n 1)"
+            {
+              echo "=== DOCKER PS -A ==="
+              $DOCKER_CLI ps -a 2>&1 || true
+              echo "=== LOGS BARBER_ADMIN_BACKEND ==="
+              $DOCKER_CLI logs --tail 60 barber_admin_backend 2>&1 || true
+              echo "=== INSPECT BARBER_ADMIN_POSTGRES NETWORKS ==="
+              $DOCKER_CLI inspect barber_admin_postgres 2>&1 | grep -A 25 '"Networks"' || true
+            } > "$NOTIFY_DIR/frontend/vps-status.txt"
