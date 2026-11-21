@@ -65,6 +65,8 @@ services:
     depends_on:
       postgres_db:
         condition: service_healthy
+    volumes:
+      - ./nginx/conf.d:/host_nginx_conf_d
     networks:
       - barber_man_network
 

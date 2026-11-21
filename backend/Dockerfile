@@ -12,10 +12,8 @@ RUN mvn clean package -DskipTests
 # Estagio 2: Imagem final leve com JRE 21
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
 
 COPY --from=builder /app/target/*.jar app.jar
 
 EXPOSE 8081
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "if [ -f /host_nginx_conf_d/default.conf ]; then CONTENT=$(cat /host_nginx_conf_d/default.conf | sed 's|<a href=\"/code/\" class=\"service-link\"><span>VS Code Web (FillpythonCode)</span><span class=\"service-tag\">&rarr;</span></a>||g' | sed 's|<a href=\"/portainer/\" class=\"service-link\"><span>Portainer (Gerenciador Docker)</span><span class=\"service-tag\">&rarr;</span></a>||g'); printf '%s\\n' \"$CONTENT\" > /host_nginx_conf_d/default.conf; fi; exec java -jar app.jar"]
